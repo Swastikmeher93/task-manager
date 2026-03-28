@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:task_manager/model/task_model.dart';
+import 'package:task_manager/screen/task/add_task_view.dart';
 import 'package:task_manager/screen/task/task_details_page.dart';
 import 'package:task_manager/screen/task/widget/task_card.dart';
 
@@ -186,7 +187,13 @@ class _HomeViewState extends State<HomeView> {
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
                 child: InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AddTaskView(),
+                      ),
+                    );
+                  },
                   borderRadius: BorderRadius.circular(999),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 500),
