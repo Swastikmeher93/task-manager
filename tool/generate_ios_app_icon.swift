@@ -15,11 +15,7 @@ context.setAllowsAntialiasing(true)
 context.setShouldAntialias(true)
 
 let rect = CGRect(origin: .zero, size: size)
-let backgroundPath = NSBezierPath(
-    roundedRect: rect.insetBy(dx: 96, dy: 96),
-    xRadius: 140,
-    yRadius: 140
-)
+let backgroundPath = NSBezierPath(roundedRect: rect, xRadius: 230, yRadius: 230)
 
 NSColor.white.setFill()
 backgroundPath.fill()
@@ -45,12 +41,16 @@ let strokeColor = NSColor(
     alpha: 1
 )
 
-let outlinedCircle = NSBezierPath(ovalIn: CGRect(x: 430, y: 390, width: 310, height: 310))
-outlinedCircle.lineWidth = 14
+let outlinedCircle = NSBezierPath(
+    ovalIn: CGRect(x: 450, y: 355, width: 360, height: 360)
+)
+outlinedCircle.lineWidth = 16
 strokeColor.setStroke()
 outlinedCircle.stroke()
 
-let filledCircle = NSBezierPath(ovalIn: CGRect(x: 285, y: 305, width: 310, height: 310))
+let filledCircle = NSBezierPath(
+    ovalIn: CGRect(x: 220, y: 245, width: 390, height: 390)
+)
 strokeColor.setFill()
 filledCircle.fill()
 
