@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:task_manager/widget/app_logo.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -34,33 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      width: 168,
-                      height: 168,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          const Positioned(
-                            bottom: 36,
-                            left: 20,
-                            child: Image(
-                              image: AssetImage('assets/images/Background.png'),
-                              height: 128,
-                              width: 128,
-                            ),
-                          ),
-                          const Positioned(
-                            top: 6,
-                            right: 18,
-                            child: Image(
-                              image: AssetImage('assets/images/done.png'),
-                              height: 48,
-                              width: 48,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const AppLogo(size: 168),
                     Transform.translate(
                       offset: const Offset(0, -20),
                       child: Column(

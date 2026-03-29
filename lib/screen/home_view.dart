@@ -8,6 +8,7 @@ import 'package:task_manager/screen/task/widget/delete_task_popup.dart';
 import 'package:task_manager/screen/task/widget/edit_task_popup.dart';
 import 'package:task_manager/screen/task/widget/task_card.dart';
 import 'package:task_manager/screen/task/widget/update_status_bottomsheet.dart';
+import 'package:task_manager/widget/app_logo.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -76,15 +77,22 @@ class _HomeViewState extends State<HomeView> {
         elevation: 0,
         centerTitle: false,
         titleSpacing: 16,
-        title: Text(
-          'Task Management',
-          style: GoogleFonts.manrope(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.8,
-            color: const Color(0xFF15161E),
-          ),
+        title: Row(
+          children: [
+            const AppLogo(size: 42),
+            const SizedBox(width: 12),
+            Text(
+              'Task Management',
+              style: GoogleFonts.manrope(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.8,
+                color: const Color(0xFF15161E),
+              ),
+            ),
+          ],
         ),
+        toolbarHeight: 82,
       ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
