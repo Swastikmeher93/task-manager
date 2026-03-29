@@ -9,7 +9,9 @@ class TaskCard extends StatelessWidget {
     required this.dueDateLabel,
     this.progress = 0.74,
     this.onTap,
-    this.onMorePressed,
+    this.onEdit,
+    this.onDelete,
+    this.onChangeStatus,
   });
 
   final String title;
@@ -17,7 +19,9 @@ class TaskCard extends StatelessWidget {
   final String dueDateLabel;
   final double progress;
   final VoidCallback? onTap;
-  final VoidCallback? onMorePressed;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onChangeStatus;
 
   static const double _cardRadius = 28;
 
@@ -57,14 +61,61 @@ class TaskCard extends StatelessWidget {
                 children: [
                   _StatusChip(status: status),
                   const Spacer(),
-                  InkWell(
-                    onTap: onMorePressed,
-                    borderRadius: BorderRadius.circular(16),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(
+                  PopupMenuButton<_TaskCardMenuAction>(
+                    tooltip: 'Task actions',
+                    color: Colors.white,
+                    elevation: 10,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    padding: EdgeInsets.zero,
+                    position: PopupMenuPosition.under,
+                    onSelected: (value) {
+                      switch (value) {
+                        case _TaskCardMenuAction.edit:
+                          onEdit?.call();
+                          break;
+                        case _TaskCardMenuAction.delete:
+                          onDelete?.call();
+                          break;
+                        case _TaskCardMenuAction.changeStatus:
+                          onChangeStatus?.call();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem<_TaskCardMenuAction>(
+                        value: _TaskCardMenuAction.edit,
+                        child: _TaskCardMenuItem(
+                          icon: Icons.edit_outlined,
+                          label: 'Edit',
+                        ),
+                      ),
+                      PopupMenuItem<_TaskCardMenuAction>(
+                        value: _TaskCardMenuAction.delete,
+                        child: _TaskCardMenuItem(
+                          icon: Icons.delete_outline_rounded,
+                          label: 'Delete',
+                          isDestructive: true,
+                        ),
+                      ),
+                      PopupMenuItem<_TaskCardMenuAction>(
+                        value: _TaskCardMenuAction.changeStatus,
+                        child: _TaskCardMenuItem(
+                          icon: Icons.sync_alt_rounded,
+                          label: 'Change Status',
+                        ),
+                      ),
+                    ],
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0EEEB),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
                         Icons.more_vert_rounded,
-                        size: 20,
+                        size: 18,
                         color: Color(0xFF5D5D6B),
                       ),
                     ),
@@ -114,6 +165,42 @@ class TaskCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+enum _TaskCardMenuAction { edit, delete, changeStatus }
+
+class _TaskCardMenuItem extends StatelessWidget {
+  const _TaskCardMenuItem({
+    required this.icon,
+    required this.label,
+    this.isDestructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isDestructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDestructive
+        ? const Color(0xFFC24C4C)
+        : const Color(0xFF232429);
+
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

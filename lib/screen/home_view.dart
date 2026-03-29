@@ -4,7 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:task_manager/model/task_model.dart';
 import 'package:task_manager/screen/task/add_task_view.dart';
 import 'package:task_manager/screen/task/task_details_page.dart';
+import 'package:task_manager/screen/task/widget/delete_task_popup.dart';
+import 'package:task_manager/screen/task/widget/edit_task_popup.dart';
 import 'package:task_manager/screen/task/widget/task_card.dart';
+import 'package:task_manager/screen/task/widget/update_status_bottomsheet.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -141,6 +144,41 @@ class _HomeViewState extends State<HomeView> {
                     status: task.status,
                     dueDateLabel: task.dueDate,
                     progress: task.progress,
+                    onEdit: () {
+                      showEditTaskPopup(
+                        context: context,
+                        initialTitle: task.title,
+                        initialStatus: task.status,
+                      );
+                    },
+                    onDelete: () {
+                      showDeleteTaskPopup(
+                        context: context,
+                        taskTitle: task.title,
+                        onDelete: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Deleted "${task.title}"'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    onChangeStatus: () {
+                      showUpdateStatusBottomSheet(
+                        context: context,
+                        currentStatus: task.status,
+                        onStatusSelected: (status) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Status for "${task.title}" changed to ${status.name}',
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(

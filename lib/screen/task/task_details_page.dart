@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:task_manager/model/task_model.dart';
+import 'package:task_manager/screen/task/widget/edit_task_popup.dart';
 
 class TaskDetailsPage extends StatelessWidget {
   const TaskDetailsPage({
@@ -33,6 +34,22 @@ class TaskDetailsPage extends StatelessWidget {
             color: const Color(0xFF15161E),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              onPressed: () {
+                showEditTaskPopup(
+                  context: context,
+                  initialTitle: title,
+                  initialStatus: status,
+                );
+              },
+              icon: const Icon(Icons.edit_outlined, color: Color(0xFF15161E)),
+              tooltip: 'Edit task',
+            ),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
