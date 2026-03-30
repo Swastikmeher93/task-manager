@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:task_manager/screen/home_view.dart';
-import 'package:task_manager/services/database_service.dart';
+import 'package:task_manager/screen/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await DatabaseService.instance.database;
   runApp(const MyApp());
 }
 
@@ -48,7 +46,7 @@ class MyApp extends StatelessWidget {
           titleSmall: GoogleFonts.manrope(textStyle: baseTextTheme.titleSmall),
         ),
       ),
-      home: const HomeView(),
+      home: const SplashScreen(),
     );
   }
 }
