@@ -300,9 +300,9 @@ class _BlockedTaskCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F4F7),
+            color: const Color(0xFFEFF1F5),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0xFFE4E7EC)),
+            border: Border.all(color: const Color(0xFFDCE1E8)),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x10171A2A),
@@ -321,7 +321,7 @@ class _BlockedTaskCard extends StatelessWidget {
                     width: 28,
                     height: 28,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFE8EBF0),
+                      color: Color(0xFFE1E5EC),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -351,7 +351,7 @@ class _BlockedTaskCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE3E6EC),
+                      color: const Color(0xFFDCE1E8),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -385,65 +385,6 @@ class _BlockedTaskCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.45,
                         color: const Color(0xFFDF5A4F),
-                      ),
-                    ),
-                  ),
-                  PopupMenuButton<_TaskCardMenuAction>(
-                    tooltip: 'Task actions',
-                    color: Colors.white,
-                    elevation: 10,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    padding: EdgeInsets.zero,
-                    position: PopupMenuPosition.under,
-                    onSelected: (value) {
-                      switch (value) {
-                        case _TaskCardMenuAction.edit:
-                          onEdit?.call();
-                          break;
-                        case _TaskCardMenuAction.delete:
-                          onDelete?.call();
-                          break;
-                        case _TaskCardMenuAction.changeStatus:
-                          onChangeStatus?.call();
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem<_TaskCardMenuAction>(
-                        value: _TaskCardMenuAction.edit,
-                        child: _TaskCardMenuItem(
-                          icon: Icons.edit_outlined,
-                          label: 'Edit',
-                        ),
-                      ),
-                      PopupMenuItem<_TaskCardMenuAction>(
-                        value: _TaskCardMenuAction.delete,
-                        child: _TaskCardMenuItem(
-                          icon: Icons.delete_outline_rounded,
-                          label: 'Delete',
-                          isDestructive: true,
-                        ),
-                      ),
-                      PopupMenuItem<_TaskCardMenuAction>(
-                        value: _TaskCardMenuAction.changeStatus,
-                        child: _TaskCardMenuItem(
-                          icon: Icons.sync_alt_rounded,
-                          label: 'Change Status',
-                        ),
-                      ),
-                    ],
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE7EAEE),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.more_vert_rounded,
-                        size: 18,
-                        color: Color(0xFF7E8798),
                       ),
                     ),
                   ),
