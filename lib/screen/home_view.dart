@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:task_manager/model/task_model.dart';
@@ -10,159 +9,82 @@ import 'package:task_manager/screen/task/widget/delete_task_popup.dart';
 import 'package:task_manager/screen/task/widget/edit_task_popup.dart';
 import 'package:task_manager/screen/task/widget/task_card.dart';
 import 'package:task_manager/screen/task/widget/update_status_bottomsheet.dart';
-import 'package:task_manager/services/database_service.dart';
+import 'package:task_manager/services/home_ui_controller.dart';
+import 'package:task_manager/services/task_controller.dart';
 import 'package:task_manager/widget/app_logo.dart';
 
-class HomeView extends StatefulWidget {
+class HomeView extends GetView<TaskController> {
   const HomeView({super.key});
 
-  @override
-  State<HomeView> createState() => _HomeViewState();
-}
-
-class _HomeViewState extends State<HomeView> {
-  static const _fabReplayGap = Duration(seconds: 10);
-  static const _fabCollapseDelay = Duration(milliseconds: 1400);
-  static const _fabLabelRevealDelay = Duration(milliseconds: 220);
-
-  bool _showFab = false;
-  bool _collapseFab = false;
-  bool _showFabLabel = false;
-  bool _isLoading = true;
-  List<TaskModel> _tasks = const [];
-  Timer? _fabReplayTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTasks();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _playFabAnimation();
-      _fabReplayTimer = Timer.periodic(_fabReplayGap, (_) {
-        _playFabAnimation();
-      });
-    });
-  }
-
-  void _playFabAnimation() {
-    if (!mounted) return;
-
-    setState(() {
-      _showFab = true;
-      _collapseFab = false;
-      _showFabLabel = false;
-    });
-
-    Future<void>.delayed(_fabLabelRevealDelay, () {
-      if (!mounted || _collapseFab) return;
-      setState(() {
-        _showFabLabel = true;
-      });
-    });
-
-    Future<void>.delayed(_fabCollapseDelay, () {
-      if (!mounted) return;
-      setState(() {
-        _showFabLabel = false;
-        _collapseFab = true;
-      });
-    });
-  }
-
-  Future<void> _loadTasks() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final tasks = await DatabaseService.instance.getTasks();
-
-    if (!mounted) return;
-    setState(() {
-      _tasks = tasks;
-      _isLoading = false;
-    });
-  }
+  HomeUiController get _homeUiController => Get.find<HomeUiController>();
 
   Future<void> _handleAddTask() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const AddTaskView()));
-
-    await _loadTasks();
+    controller.clearForm();
+    await Get.to<void>(() => const AddTaskView());
   }
 
-  Future<void> _handleEditTask(TaskModel task) async {
+  Future<void> _handleEditTask(BuildContext context, TaskModel task) async {
+    final messenger = ScaffoldMessenger.of(context);
     final editedTask = await showEditTaskPopup(
       context: context,
       initialTitle: task.title,
       initialDescription: task.description,
       initialStatus: task.status,
       initialDueDate: task.dueDate,
+      initialBlockedByTaskId: task.blockedBy,
+      blockedByOptions: controller.availableBlockedByOptions(
+        excludingTaskId: task.id,
+      ),
     );
 
     if (editedTask == null) return;
 
-    await DatabaseService.instance.updateTask(
+    await controller.updateTask(
       TaskModel(
         id: task.id,
         title: editedTask.title,
         description: editedTask.description,
         dueDate: editedTask.dueDate,
         status: editedTask.status,
-        blockedBy: task.blockedBy,
+        blockedBy: editedTask.blockedByTaskId,
       ),
     );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Updated "${editedTask.title}"')),
-    );
-    await _loadTasks();
+    if (!context.mounted) return;
+    messenger.showSnackBar(SnackBar(content: Text('Updated "${editedTask.title}"')));
   }
 
-  Future<void> _handleDeleteTask(TaskModel task) async {
+  Future<void> _handleDeleteTask(BuildContext context, TaskModel task) async {
     await showDeleteTaskPopup(
       context: context,
       taskTitle: task.title,
       onDelete: () async {
+        final messenger = ScaffoldMessenger.of(context);
         final taskId = task.id;
         if (taskId == null) return;
 
-        await DatabaseService.instance.deleteTask(taskId);
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Deleted "${task.title}"')));
-        await _loadTasks();
+        await controller.deleteTask(taskId);
+        if (!context.mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text('Deleted "${task.title}"')));
       },
     );
   }
 
-  Future<void> _handleStatusChange(TaskModel task) async {
+  Future<void> _handleStatusChange(BuildContext context, TaskModel task) async {
+    final messenger = ScaffoldMessenger.of(context);
     await showUpdateStatusBottomSheet(
       context: context,
       currentStatus: task.status,
       onStatusSelected: (status) async {
-        await DatabaseService.instance.updateTask(
-          TaskModel(
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            dueDate: task.dueDate,
-            status: status,
-            blockedBy: task.blockedBy,
-          ),
-        );
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        await controller.updateTaskStatus(task: task, status: status);
+        if (!context.mounted) return;
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               'Status for "${task.title}" changed to ${_statusLabel(status)}',
             ),
           ),
         );
-        await _loadTasks();
       },
     );
   }
@@ -196,12 +118,6 @@ class _HomeViewState extends State<HomeView> {
       case TaskStatus.completed:
         return 'done';
     }
-  }
-
-  @override
-  void dispose() {
-    _fabReplayTimer?.cancel();
-    super.dispose();
   }
 
   @override
@@ -256,152 +172,191 @@ class _HomeViewState extends State<HomeView> {
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F2F7),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, size: 20, color: Color(0xFF8D93A6)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Search your tasks',
-                    style: GoogleFonts.manrope(
-                      color: const Color(0xFF8D93A6),
-                      fontWeight: FontWeight.w600,
-                    ),
+              child: TextField(
+                controller: controller.searchController,
+                onChanged: controller.onSearchChanged,
+                decoration: InputDecoration(
+                  icon: const Icon(
+                    Icons.search,
+                    size: 20,
+                    color: Color(0xFF8D93A6),
                   ),
-                ],
+                  hintText: 'Search your tasks',
+                  hintStyle: GoogleFonts.manrope(
+                    color: const Color(0xFF8D93A6),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  border: InputBorder.none,
+                  suffixIcon: Obx(
+                    () => controller.searchQuery.value.isEmpty
+                        ? const SizedBox.shrink()
+                        : IconButton(
+                            onPressed: () {
+                              controller.searchController.clear();
+                              controller.onSearchChanged('');
+                            },
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: Color(0xFF8D93A6),
+                            ),
+                          ),
+                  ),
+                ),
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFF15161E),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _tasks.isEmpty
-                    ? _EmptyState(onCreateTask: _handleAddTask)
-                    : RefreshIndicator(
-                        onRefresh: _loadTasks,
-                        child: ListView.separated(
-                          physics: const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics(),
-                          ),
-                          itemCount: _tasks.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 18),
-                          itemBuilder: (context, index) {
-                            final task = _tasks[index];
+              child: Obx(() {
+                if (controller.isLoading.value && controller.tasks.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                            return TaskCard(
-                              title: task.title,
-                              description: task.description,
-                              status: task.status,
-                              dueDateLabel: _formatDueDate(task.dueDate),
-                              progress: _progressFor(task.status),
-                              onEdit: () => _handleEditTask(task),
-                              onDelete: () => _handleDeleteTask(task),
-                              onChangeStatus: () => _handleStatusChange(task),
-                              onTap: () async {
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => TaskDetailsPage(task: task),
-                                  ),
-                                );
-                                await _loadTasks();
-                              },
-                            );
-                          },
-                        ),
-                      ),
-              ),
+                if (controller.tasks.isEmpty) {
+                  return _EmptyState(onCreateTask: _handleAddTask);
+                }
+
+                if (controller.filteredTasks.isEmpty) {
+                  return const Center(
+                    child: Text('No tasks match your search.'),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: controller.loadTasks,
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    itemCount: controller.filteredTasks.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 18),
+                    itemBuilder: (context, index) {
+                      final task = controller.filteredTasks[index];
+
+                      return TaskCard(
+                        title: task.title,
+                        description: task.description,
+                        status: task.status,
+                        dueDateLabel: _formatDueDate(task.dueDate),
+                        progress: _progressFor(task.status),
+                        onEdit: () => _handleEditTask(context, task),
+                        onDelete: () => _handleDeleteTask(context, task),
+                        onChangeStatus: () =>
+                            _handleStatusChange(context, task),
+                        onTap: () {
+                          final taskId = task.id;
+                          if (taskId == null) return;
+                          Get.to<void>(() => TaskDetailsPage(taskId: taskId));
+                        },
+                      );
+                    },
+                  ),
+                );
+              }),
             ),
           ],
         ),
       ),
-      floatingActionButton: AnimatedSlide(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutBack,
-        offset: _showFab ? Offset.zero : const Offset(0, 1.35),
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 420),
-          curve: Curves.easeOutCubic,
-          scale: _showFab ? 1 : 0.9,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 280),
-            opacity: _showFab ? 1 : 0,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x2624389C),
-                    blurRadius: 28,
-                    spreadRadius: 2,
-                    offset: Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
-                child: InkWell(
-                  onTap: _handleAddTask,
+      floatingActionButton: Obx(
+        () => AnimatedSlide(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutBack,
+          offset: _homeUiController.showFab.value
+              ? Offset.zero
+              : const Offset(0, 1.35),
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 420),
+            curve: Curves.easeOutCubic,
+            scale: _homeUiController.showFab.value ? 1 : 0.9,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 280),
+              opacity: _homeUiController.showFab.value ? 1 : 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeInOutCubic,
-                    width: _collapseFab ? 74 : 172,
-                    height: 74,
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF5169EE), Color(0xFF3048B8)],
-                      ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x2624389C),
+                      blurRadius: 28,
+                      spreadRadius: 2,
+                      offset: Offset(0, 12),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 250),
-                            opacity: _showFabLabel ? 1 : 0,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 18, right: 8),
-                              child: Text(
-                                'Add Task',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.manrope(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.1,
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
+                  child: InkWell(
+                    onTap: _handleAddTask,
+                    borderRadius: BorderRadius.circular(999),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOutCubic,
+                      width: _homeUiController.collapseFab.value ? 74 : 172,
+                      height: 74,
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF5169EE), Color(0xFF3048B8)],
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 250),
+                              opacity: _homeUiController.showFabLabel.value
+                                  ? 1
+                                  : 0,
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 18,
+                                  right: 8,
+                                ),
+                                child: Text(
+                                  'Add Task',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.manrope(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.1,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOutCubic,
-                          width: 62,
-                          height: 62,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF4059D6),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeInOutCubic,
+                            width: 62,
+                            height: 62,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF4059D6),
+                            ),
+                            child: const Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 30,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.add_rounded,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

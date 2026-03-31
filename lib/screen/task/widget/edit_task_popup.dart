@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:task_manager/model/task_model.dart';
@@ -9,19 +10,29 @@ Future<EditTaskResult?> showEditTaskPopup({
   required TaskStatus initialStatus,
   String initialDescription = '',
   DateTime? initialDueDate,
-}) {
-  return showDialog<EditTaskResult>(
+  int? initialBlockedByTaskId,
+  List<TaskModel> blockedByOptions = const [],
+}) async {
+  final tag = UniqueKey().toString();
+  final result = await showDialog<EditTaskResult>(
     context: context,
     barrierDismissible: true,
     builder: (dialogContext) {
       return EditTaskPopup(
+        controllerTag: tag,
         initialTitle: initialTitle,
         initialDescription: initialDescription,
         initialStatus: initialStatus,
         initialDueDate: initialDueDate,
+        initialBlockedByTaskId: initialBlockedByTaskId,
+        blockedByOptions: blockedByOptions,
       );
     },
   );
+  if (Get.isRegistered<_EditTaskPopupController>(tag: tag)) {
+    Get.delete<_EditTaskPopupController>(tag: tag);
+  }
+  return result;
 }
 
 class EditTaskResult {
@@ -30,67 +41,55 @@ class EditTaskResult {
     required this.description,
     required this.dueDate,
     required this.status,
+    required this.blockedByTaskId,
   });
 
   final String title;
   final String description;
   final DateTime dueDate;
   final TaskStatus status;
+  final int? blockedByTaskId;
 }
 
-class EditTaskPopup extends StatefulWidget {
-  const EditTaskPopup({
+class EditTaskPopup extends StatelessWidget {
+  EditTaskPopup({
     super.key,
+    required this.controllerTag,
     required this.initialTitle,
     required this.initialStatus,
     this.initialDescription = '',
     this.initialDueDate,
-  });
+    this.initialBlockedByTaskId,
+    this.blockedByOptions = const [],
+  }) {
+    Get.put(
+      _EditTaskPopupController(
+        initialTitle: initialTitle,
+        initialDescription: initialDescription,
+        initialStatus: initialStatus,
+        initialDueDate: initialDueDate,
+        initialBlockedByTaskId: initialBlockedByTaskId,
+        blockedByOptions: blockedByOptions,
+      ),
+      tag: controllerTag,
+    );
+  }
 
+  final String controllerTag;
   final String initialTitle;
   final String initialDescription;
   final TaskStatus initialStatus;
   final DateTime? initialDueDate;
-  @override
-  State<EditTaskPopup> createState() => _EditTaskPopupState();
-}
+  final int? initialBlockedByTaskId;
+  final List<TaskModel> blockedByOptions;
 
-class _EditTaskPopupState extends State<EditTaskPopup> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _descriptionController;
-  late final TextEditingController _dueDateController;
-  late TaskStatus _selectedStatus;
+  _EditTaskPopupController get _controller =>
+      Get.find<_EditTaskPopupController>(tag: controllerTag);
 
-  DateTime? _selectedDueDate;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.initialTitle);
-    _descriptionController = TextEditingController(
-      text: widget.initialDescription,
-    );
-    _selectedStatus = widget.initialStatus;
-    _selectedDueDate = widget.initialDueDate;
-    _dueDateController = TextEditingController(
-      text: widget.initialDueDate == null
-          ? ''
-          : DateFormat('MMM d, yyyy').format(widget.initialDueDate!),
-    );
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    _dueDateController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDueDate() async {
+  Future<void> _pickDueDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDueDate ?? DateTime.now(),
+      initialDate: _controller.selectedDueDate.value ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       builder: (context, child) {
@@ -108,17 +107,13 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
     );
 
     if (picked == null) return;
-
-    setState(() {
-      _selectedDueDate = picked;
-      _dueDateController.text = DateFormat('MMM d, yyyy').format(picked);
-    });
+    _controller.setDueDate(picked);
   }
 
-  void _save() {
-    final title = _titleController.text.trim();
-    final description = _descriptionController.text.trim();
-    final dueDate = _selectedDueDate;
+  void _save(BuildContext context) {
+    final title = _controller.titleController.text.trim();
+    final description = _controller.descriptionController.text.trim();
+    final dueDate = _controller.selectedDueDate.value;
 
     if (title.isEmpty || description.isEmpty || dueDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,9 +129,21 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
         title: title,
         description: description,
         dueDate: dueDate,
-        status: _selectedStatus,
+        status: _controller.selectedStatus.value,
+        blockedByTaskId: _controller.selectedBlockedByTaskId.value,
       ),
     );
+  }
+
+  String _statusLabel(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.pending:
+        return 'To-Do';
+      case TaskStatus.inProgress:
+        return 'In Progress';
+      case TaskStatus.completed:
+        return 'Done';
+    }
   }
 
   @override
@@ -254,28 +261,28 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
                     ],
                   ),
                   const SizedBox(height: 28),
-                  _PopupLabel(text: 'TASK TITLE'),
+                  const _PopupLabel(text: 'TASK TITLE'),
                   const SizedBox(height: 8),
                   _PopupTextField(
-                    controller: _titleController,
+                    controller: _controller.titleController,
                     hintText: 'What needs attention?',
                   ),
                   const SizedBox(height: 14),
-                  _PopupLabel(text: 'DETAILED DESCRIPTION'),
+                  const _PopupLabel(text: 'DETAILED DESCRIPTION'),
                   const SizedBox(height: 8),
                   _PopupTextField(
-                    controller: _descriptionController,
+                    controller: _controller.descriptionController,
                     hintText: 'Add a few details...',
                     maxLines: 4,
                   ),
                   const SizedBox(height: 14),
-                  _PopupLabel(text: 'DUE DATE'),
+                  const _PopupLabel(text: 'DUE DATE'),
                   const SizedBox(height: 8),
                   _PopupTextField(
-                    controller: _dueDateController,
+                    controller: _controller.dueDateController,
                     hintText: 'Select due date',
                     readOnly: true,
-                    onTap: _pickDueDate,
+                    onTap: () => _pickDueDate(context),
                     suffixIcon: const Icon(
                       Icons.calendar_today_outlined,
                       size: 18,
@@ -283,107 +290,116 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _PopupLabel(text: 'TASK STATUS'),
+                  const _PopupLabel(text: 'TASK STATUS'),
                   const SizedBox(height: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0F0F2),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 1),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<TaskStatus>(
-                        value: _selectedStatus,
-                        isExpanded: true,
-                        icon: const Padding(
-                          padding: EdgeInsets.only(right: 10),
-                          child: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFF7280C8),
+                  Obx(
+                    () => Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F0F2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 1),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<TaskStatus>(
+                          value: _controller.selectedStatus.value,
+                          isExpanded: true,
+                          icon: const Padding(
+                            padding: EdgeInsets.only(right: 10),
+                            child: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Color(0xFF7280C8),
+                            ),
                           ),
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF22242C),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          items: TaskStatus.values.map((status) {
+                            return DropdownMenuItem<TaskStatus>(
+                              value: status,
+                              child: Text(_statusLabel(status)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            _controller.selectedStatus.value = value;
+                          },
                         ),
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF22242C),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        items: TaskStatus.values.map((status) {
-                          return DropdownMenuItem<TaskStatus>(
-                            value: status,
-                            child: Text(_statusLabel(status)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setState(() {
-                            _selectedStatus = value;
-                          });
-                        },
                       ),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _PopupLabel(text: 'BLOCKED BY'),
+                  const _PopupLabel(text: 'BLOCKED BY'),
                   const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 13,
+                  Obx(
+                    () => Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F0F2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int?>(
+                          value: _controller.selectedBlockedByTaskId.value,
+                          isExpanded: true,
+                          items: [
+                            const DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text('No dependency'),
+                            ),
+                            ..._controller.blockedByOptions.map((task) {
+                              return DropdownMenuItem<int?>(
+                                value: task.id,
+                                child: Text(
+                                  task.title,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }),
+                          ],
+                          onChanged: (value) {
+                            _controller.selectedBlockedByTaskId.value = value;
+                          },
+                        ),
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F4FA),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Task #102: Budget Approval from Finance',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF4A4D5A),
+                  ),
+                  Obx(() {
+                    if (_controller.selectedBlockedByTaskId.value == null) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2),
+                            child: Icon(
+                              Icons.warning_amber_rounded,
+                              size: 15,
+                              color: Color(0xFFBE6B5B),
                             ),
                           ),
-                        ),
-                        const Icon(
-                          Icons.link_rounded,
-                          size: 18,
-                          color: Color(0xFF5868D8),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 2),
-                        child: Icon(
-                          Icons.warning_amber_rounded,
-                          size: 15,
-                          color: Color(0xFFBE6B5B),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'This task cannot be completed until the selected dependency is resolved.',
-                          style: GoogleFonts.inter(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFB15F4F),
-                            height: 1.35,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'This task depends on another task from your list and should be completed after that one.',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFB15F4F),
+                                height: 1.35,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  }),
                   const SizedBox(height: 34),
                   Row(
                     children: [
@@ -410,7 +426,7 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _save,
+                          onPressed: () => _save(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4456D8),
                             foregroundColor: Colors.white,
@@ -449,16 +465,47 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
       ),
     );
   }
+}
 
-  String _statusLabel(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.pending:
-        return 'To-Do';
-      case TaskStatus.inProgress:
-        return 'In Progress';
-      case TaskStatus.completed:
-        return 'Done';
-    }
+class _EditTaskPopupController extends GetxController {
+  _EditTaskPopupController({
+    required String initialTitle,
+    required String initialDescription,
+    required TaskStatus initialStatus,
+    required DateTime? initialDueDate,
+    required int? initialBlockedByTaskId,
+    required this.blockedByOptions,
+  }) : selectedStatus = initialStatus.obs,
+       selectedDueDate = Rxn<DateTime>(initialDueDate),
+       selectedBlockedByTaskId = RxnInt(initialBlockedByTaskId) {
+    titleController = TextEditingController(text: initialTitle);
+    descriptionController = TextEditingController(text: initialDescription);
+    dueDateController = TextEditingController(
+      text: initialDueDate == null
+          ? ''
+          : DateFormat('MMM d, yyyy').format(initialDueDate),
+    );
+  }
+
+  late final TextEditingController titleController;
+  late final TextEditingController descriptionController;
+  late final TextEditingController dueDateController;
+  final Rx<TaskStatus> selectedStatus;
+  final Rxn<DateTime> selectedDueDate;
+  final RxnInt selectedBlockedByTaskId;
+  final List<TaskModel> blockedByOptions;
+
+  void setDueDate(DateTime dueDate) {
+    selectedDueDate.value = dueDate;
+    dueDateController.text = DateFormat('MMM d, yyyy').format(dueDate);
+  }
+
+  @override
+  void onClose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    dueDateController.dispose();
+    super.onClose();
   }
 }
 

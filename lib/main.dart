@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:task_manager/screen/splash_screen.dart';
+import 'package:task_manager/services/home_ui_controller.dart';
+import 'package:task_manager/services/task_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,9 +17,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseTextTheme = ThemeData.light().textTheme;
 
-    return MaterialApp(
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Task Manager',
+      initialBinding: BindingsBuilder(() {
+        Get.lazyPut<TaskController>(() => TaskController(), fenix: true);
+        Get.lazyPut<HomeUiController>(() => HomeUiController(), fenix: true);
+      }),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFBAC3FF)),
         scaffoldBackgroundColor: const Color(0xFFF8F9FA),

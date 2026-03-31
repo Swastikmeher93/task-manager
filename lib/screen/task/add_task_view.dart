@@ -1,23 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:task_manager/model/task_model.dart';
-import 'package:task_manager/services/database_service.dart';
+import 'package:task_manager/services/task_controller.dart';
 
-class AddTaskView extends StatefulWidget {
+class AddTaskView extends GetView<TaskController> {
   const AddTaskView({super.key});
-
-  @override
-  State<AddTaskView> createState() => _AddTaskViewState();
-}
-
-class _AddTaskViewState extends State<AddTaskView> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _dueDateController = TextEditingController();
-  TaskStatus _selectedStatus = TaskStatus.pending;
-  DateTime? _selectedDueDate;
-  bool _isSaving = false;
 
   Widget _buildLabel(String text, {bool isOptional = false}) {
     return Padding(
@@ -94,10 +82,10 @@ class _AddTaskViewState extends State<AddTaskView> {
     );
   }
 
-  Future<void> _pickDueDate() async {
+  Future<void> _pickDueDate(BuildContext context) async {
     final selectedDate = await showDatePicker(
       context: context,
-      initialDate: _selectedDueDate ?? DateTime.now(),
+      initialDate: controller.selectedDueDate.value ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       builder: (context, child) {
@@ -115,20 +103,16 @@ class _AddTaskViewState extends State<AddTaskView> {
     );
 
     if (selectedDate == null) return;
-
-    setState(() {
-      _selectedDueDate = selectedDate;
-      _dueDateController.text = DateFormat('MM/dd/yyyy').format(selectedDate);
-    });
+    controller.setSelectedDueDate(selectedDate);
   }
 
-  Future<void> _saveTask() async {
-    final title = _titleController.text.trim();
-    final description = _descriptionController.text.trim();
-    final dueDate = _selectedDueDate;
+  Future<void> _saveTask(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final taskId = await controller.createTaskFromForm();
 
-    if (title.isEmpty || description.isEmpty || dueDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (!context.mounted) return;
+    if (taskId == null) {
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Please enter a title, description, and due date.'),
         ),
@@ -136,25 +120,26 @@ class _AddTaskViewState extends State<AddTaskView> {
       return;
     }
 
-    setState(() {
-      _isSaving = true;
-    });
+    final savedTitle = controller.titleController.text.trim();
+    controller.clearForm();
+    Get.back<void>();
+    messenger.showSnackBar(SnackBar(content: Text('Saved "$savedTitle"')));
+  }
 
-    await DatabaseService.instance.insertTask(
-      TaskModel(
-        title: title,
-        description: description,
-        dueDate: dueDate,
-        status: _selectedStatus,
-      ),
-    );
+  void _close() {
+    controller.clearForm();
+    Get.back<void>();
+  }
 
-    if (!mounted) return;
-
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Saved "$title"')));
+  String _statusLabel(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.pending:
+        return 'To-Do';
+      case TaskStatus.inProgress:
+        return 'In Progress';
+      case TaskStatus.completed:
+        return 'Done';
+    }
   }
 
   @override
@@ -168,7 +153,7 @@ class _AddTaskViewState extends State<AddTaskView> {
         centerTitle: false,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF15161E)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _close,
         ),
         title: Text(
           'Add Task',
@@ -205,13 +190,13 @@ class _AddTaskViewState extends State<AddTaskView> {
             _buildLabel('TASK TITLE'),
             _buildTextField(
               hint: 'What is your focus?',
-              controller: _titleController,
+              controller: controller.titleController,
             ),
             _buildLabel('DESCRIPTION'),
             _buildTextField(
               hint: 'Add more details about this ritual...',
               maxLines: 4,
-              controller: _descriptionController,
+              controller: controller.descriptionController,
             ),
             _buildLabel('DUE DATE'),
             _buildTextField(
@@ -223,95 +208,121 @@ class _AddTaskViewState extends State<AddTaskView> {
                 size: 20,
               ),
               readOnly: true,
-              controller: _dueDateController,
-              onTap: _pickDueDate,
+              controller: controller.dueDateController,
+              onTap: () => _pickDueDate(context),
             ),
             _buildLabel('CURRENT STATUS'),
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFEBECEF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<TaskStatus>(
-                  value: _selectedStatus,
-                  isExpanded: true,
-                  items: TaskStatus.values.map((status) {
-                    return DropdownMenuItem<TaskStatus>(
-                      value: status,
-                      child: Text(_statusLabel(status)),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _selectedStatus = value;
-                    });
-                  },
+            Obx(
+              () => Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEBECEF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<TaskStatus>(
+                    value: controller.selectedStatus.value,
+                    isExpanded: true,
+                    items: TaskStatus.values.map((status) {
+                      return DropdownMenuItem<TaskStatus>(
+                        value: status,
+                        child: Text(_statusLabel(status)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      controller.setSelectedStatus(value);
+                    },
+                  ),
                 ),
               ),
             ),
             _buildLabel('BLOCKED BY', isOptional: true),
-            _buildTextField(
-              hint: 'No dependency support yet',
-              hintColor: const Color(0xFF15161E),
-              prefixIcon: const Icon(
-                Icons.link_off_rounded,
-                color: Color(0xFF3B50C1),
-                size: 20,
+            Obx(
+              () => Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEBECEF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int?>(
+                    value: controller.selectedBlockedByTaskId.value,
+                    isExpanded: true,
+                    hint: const Text('No dependency'),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('No dependency'),
+                      ),
+                      ...controller.availableBlockedByOptions().map((task) {
+                        return DropdownMenuItem<int?>(
+                          value: task.id,
+                          child: Text(
+                            task.title,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }),
+                    ],
+                    onChanged: controller.setSelectedBlockedByTaskId,
+                  ),
+                ),
               ),
-              readOnly: true,
             ),
             const SizedBox(height: 40),
-            Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFF2F42A6),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2F42A6).withValues(alpha: 0.2),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _isSaving ? null : _saveTask,
+            Obx(
+              () => Container(
+                width: double.infinity,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2F42A6),
                   borderRadius: BorderRadius.circular(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.4,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2F42A6).withValues(alpha: 0.2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: controller.isSaving.value
+                        ? null
+                        : () => _saveTask(context),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        controller.isSaving.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
+                              )
+                            : const Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 22,
                               ),
-                            )
-                          : const Icon(
-                              Icons.check_circle,
-                              color: Colors.white,
-                              size: 22,
-                            ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isSaving ? 'Saving...' : 'Save Task',
-                        style: GoogleFonts.manrope(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                        const SizedBox(width: 8),
+                        Text(
+                          controller.isSaving.value ? 'Saving...' : 'Save Task',
+                          style: GoogleFonts.manrope(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -321,24 +332,5 @@ class _AddTaskViewState extends State<AddTaskView> {
         ),
       ),
     );
-  }
-
-  String _statusLabel(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.pending:
-        return 'To-Do';
-      case TaskStatus.inProgress:
-        return 'In Progress';
-      case TaskStatus.completed:
-        return 'Done';
-    }
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    _dueDateController.dispose();
-    super.dispose();
   }
 }
