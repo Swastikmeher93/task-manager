@@ -190,10 +190,7 @@ class HomeView extends GetView<TaskController> {
                     ),
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF0F2F7),
                         borderRadius: BorderRadius.circular(16),
@@ -202,7 +199,7 @@ class HomeView extends GetView<TaskController> {
                         controller: controller.searchController,
                         onChanged: controller.onSearchChanged,
                         decoration: InputDecoration(
-                          icon: const Icon(
+                          prefixIcon: const Icon(
                             Icons.search,
                             size: 20,
                             color: Color(0xFF8D93A6),
@@ -213,6 +210,10 @@ class HomeView extends GetView<TaskController> {
                             fontWeight: FontWeight.w600,
                           ),
                           border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
                           suffixIcon: controller.searchQuery.value.isEmpty
                               ? const SizedBox.shrink()
                               : IconButton(
