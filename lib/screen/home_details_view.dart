@@ -113,11 +113,11 @@ class HomeDetailsView extends StatelessWidget {
   String _statusLabel(TaskStatus status) {
     switch (status) {
       case TaskStatus.pending:
-        return 'PENDING';
+        return 'TO-DO';
       case TaskStatus.inProgress:
         return 'IN PROGRESS';
       case TaskStatus.completed:
-        return 'COMPLETED';
+        return 'DONE';
     }
   }
 

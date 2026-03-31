@@ -3,15 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:task_manager/model/task_model.dart';
 
-Future<void> showEditTaskPopup({
+Future<EditTaskResult?> showEditTaskPopup({
   required BuildContext context,
   required String initialTitle,
   required TaskStatus initialStatus,
   String initialDescription = '',
   DateTime? initialDueDate,
-  VoidCallback? onSave,
 }) {
-  return showDialog<void>(
+  return showDialog<EditTaskResult>(
     context: context,
     barrierDismissible: true,
     builder: (dialogContext) {
@@ -20,10 +19,23 @@ Future<void> showEditTaskPopup({
         initialDescription: initialDescription,
         initialStatus: initialStatus,
         initialDueDate: initialDueDate,
-        onSave: onSave,
       );
     },
   );
+}
+
+class EditTaskResult {
+  const EditTaskResult({
+    required this.title,
+    required this.description,
+    required this.dueDate,
+    required this.status,
+  });
+
+  final String title;
+  final String description;
+  final DateTime dueDate;
+  final TaskStatus status;
 }
 
 class EditTaskPopup extends StatefulWidget {
@@ -33,15 +45,12 @@ class EditTaskPopup extends StatefulWidget {
     required this.initialStatus,
     this.initialDescription = '',
     this.initialDueDate,
-    this.onSave,
   });
 
   final String initialTitle;
   final String initialDescription;
   final TaskStatus initialStatus;
   final DateTime? initialDueDate;
-  final VoidCallback? onSave;
-
   @override
   State<EditTaskPopup> createState() => _EditTaskPopupState();
 }
@@ -104,6 +113,30 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
       _selectedDueDate = picked;
       _dueDateController.text = DateFormat('MMM d, yyyy').format(picked);
     });
+  }
+
+  void _save() {
+    final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
+    final dueDate = _selectedDueDate;
+
+    if (title.isEmpty || description.isEmpty || dueDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a title, description, and due date.'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).pop(
+      EditTaskResult(
+        title: title,
+        description: description,
+        dueDate: dueDate,
+        status: _selectedStatus,
+      ),
+    );
   }
 
   @override
@@ -377,10 +410,7 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            widget.onSave?.call();
-                            Navigator.of(context).pop();
-                          },
+                          onPressed: _save,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4456D8),
                             foregroundColor: Colors.white,
@@ -423,11 +453,11 @@ class _EditTaskPopupState extends State<EditTaskPopup> {
   String _statusLabel(TaskStatus status) {
     switch (status) {
       case TaskStatus.pending:
-        return 'Pending';
+        return 'To-Do';
       case TaskStatus.inProgress:
         return 'In Progress';
       case TaskStatus.completed:
-        return 'Completed';
+        return 'Done';
     }
   }
 }
@@ -458,7 +488,6 @@ class _PopupTextField extends StatelessWidget {
     this.maxLines = 1,
     this.readOnly = false,
     this.onTap,
-    this.prefixIcon,
     this.suffixIcon,
   });
 
@@ -467,7 +496,6 @@ class _PopupTextField extends StatelessWidget {
   final int maxLines;
   final bool readOnly;
   final VoidCallback? onTap;
-  final Widget? prefixIcon;
   final Widget? suffixIcon;
 
   @override
@@ -495,7 +523,6 @@ class _PopupTextField extends StatelessWidget {
             fontWeight: FontWeight.w500,
             color: const Color(0xFFA5A7B4),
           ),
-          prefixIcon: prefixIcon,
           suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
