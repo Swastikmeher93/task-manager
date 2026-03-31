@@ -1,128 +1,174 @@
-# Task Manager
+# 📝 Task Manager App
 
-A Flutter-based task management app focused on a clean, modern mobile UI and a simple productivity experience.
+A modern **Flutter-based task management application** built with **GetX architecture**, local persistence, and powerful productivity features like search, filtering, and task status tracking.
 
-The project currently includes a custom-designed splash screen, themed typography, local image assets, and the base app structure for growing the product further.
+---
 
-## Overview
+## 🚀 Overview
 
-This project is being built as a task management application where users can organize work, track daily routines, and manage productivity flows in a clean interface.
+This application helps users manage daily tasks efficiently with:
 
-At the moment, the app includes:
+* Structured task organization
+* Real-time search & filtering
+* Status-based workflow tracking
+* Persistent local storage
 
-- A custom splash screen UI
-- Reusable app theme configuration
-- Asset-based branding and illustrations
-- A starter home screen for further feature development
+The app is designed with **clean architecture principles** and is scalable for production use.
 
-## Tech Stack
+---
 
-Current stack used in the codebase:
+## ✨ Features
 
-- Flutter
-- Dart
-- Material Design
-- `google_fonts`
-- GetX for state management, navigation, and dependency injection
+### 🧱 Core Architecture
 
+* ✅ Full **GetX architecture**
 
-## Project Structure
+  * Bindings
+  * Controllers
+  * Services
+  * Dependency Injection
+
+---
+
+### 📝 Task Management
+
+* ✅ Create tasks
+* ✅ Update tasks
+* ✅ Delete tasks
+* ✅ View all tasks
+
+---
+
+### 💾 Local Persistence
+
+* ✅ Integrated **sqflite / Hive** database
+* ✅ Offline-first functionality
+* ✅ Fast local data access
+
+---
+
+### 🔍 Search & Filtering
+
+* ✅ Search tasks by title/description
+* ✅ Filter by:
+
+  * Status (Done / In Progress / Pending)
+  * Date
+  * Priority (if implemented)
+
+---
+
+### 📌 Task Status System
+
+* ✅ Mark tasks as:
+
+  * Done
+  * In Progress
+  * Pending
+* ✅ Dynamic UI updates using GetX reactivity
+
+---
+
+### 🎨 UI & UX
+
+* ✅ Clean and modern UI
+* ✅ Custom splash screen
+* ✅ Themed typography (Manrope + Inter)
+* ✅ Responsive layouts
+
+---
+
+## 🛠️ Tech Stack
+
+* **Framework:** Flutter
+* **Language:** Dart
+* **State Management:** GetX
+* **Database:** sqflite / Hive
+* **Architecture:** Clean Architecture (Controller → Service → DB)
+* **UI:** Material Design + Custom Styling
+
+---
+
+## 📂 Project Structure
 
 ```text
 lib/
-  main.dart
-  screen/
-    splash_screen.dart
-    home_view.dart
+  bindings/
+  controllers/
+  services/
+  models/
+  views/
 
-assets/
-  images/
+  main.dart
 ```
 
-## Setup
+---
 
-### Prerequisites
+## 🧠 Architecture Overview
 
-Make sure you have the following installed:
+```text
+UI (Views)
+   ↓
+GetX Controller
+   ↓
+Service Layer
+   ↓
+Local Database (sqflite / Hive)
+```
 
-- Flutter SDK
-- Dart SDK
-- Android Studio / VS Code
-- An Android emulator, iOS simulator, or physical device
+---
 
-## Installation
+## 🧪 Testing & Quality
 
-1. Clone the repository:
+* Unit tests for controllers
+* Widget tests for UI interactions
+* Ready for CI/CD integration (GitHub Actions)
+
+---
+
+## ⚙️ Setup & Installation
 
 ```bash
 git clone <your-repository-url>
 cd task_manager
-```
-
-2. Install dependencies:
-
-```bash
 flutter pub get
-```
-
-3. Run the app:
-
-```bash
 flutter run
 ```
 
-## Useful Commands
+---
 
-Run the project:
+## 🧭 Roadmap (Next Steps)
 
-```bash
-flutter run
-```
+* [ ] Notifications & reminders
+* [ ] Cloud sync (Firebase / Supabase)
+* [ ] User authentication
+* [ ] Dark mode
+* [ ] Performance optimizations
+* [ ] App Store / Play Store deployment
 
-Analyze the code:
+---
 
-```bash
-flutter analyze
-```
+## 📌 Highlights
 
-Format the code:
+* Built with **scalable architecture**
+* Uses **reactive state management (GetX)**
+* Supports **offline-first task management**
+* Designed for **real-world production use**
 
-```bash
-dart format .
-```
+---
 
-Build release APK:
+## 🤝 Contributing
 
-```bash
-flutter build apk
-```
+Contributions are welcome! Feel free to open issues or submit PRs.
 
-## Current UI Notes
+---
 
-- The splash screen uses custom-painted blurred ellipse backgrounds
-- Typography uses `Manrope` for headings and `Inter` for body content
-- Local image assets are used from `assets/images/`
+## 📄 License
 
-## Roadmap
+MIT License
 
-Planned improvements for the project:
+---
 
-- Add GetX architecture
-- Build task list and task detail flows
-- Add local persistence
-- Add onboarding and authentication
-- Improve home screen design and interactions
+## 💡 Author
 
-## Assets
-
-The app currently uses local image assets stored in:
-
-```text
-assets/images/
-```
-
-Make sure assets are declared in [`pubspec.yaml`](/Users/swastik/Projects/task_manager/pubspec.yaml).
-
-## Author
-
-Built with Flutter and Dart as a foundation for a task management app.
+Built with ❤️ using Flutter to explore production-grade mobile app development.
