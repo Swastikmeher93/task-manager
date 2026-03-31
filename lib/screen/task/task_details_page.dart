@@ -260,16 +260,18 @@ class TaskDetailsPage extends GetView<TaskController> {
                 ),
                 const SizedBox(height: 14),
                 _DetailInfoCard(
-                  background: const Color(0xFFF0F1F5),
+                  background: const Color(0xFFFFD8D3),
                   icon: Icons.block_rounded,
-                  iconBackground: const Color(0xFFE6E8EE),
-                  iconColor: const Color(0xFF737B8E),
+                  iconBackground: const Color(0xFFFFEBE8),
+                  iconColor: const Color(0xFFB55B4B),
                   label: 'BLOCKED BY',
-                  value: 'this task title',
+                  value: blockedByLabel == 'No dependency'
+                      ? 'Not blocked'
+                      : 'Blocked by this task',
                   subtitle: blockedByLabel == 'No dependency'
-                      ? 'Not blocked by any task'
+                      ? 'No dependency assigned'
                       : blockedByLabel,
-                  valueColor: const Color(0xFF4D5463),
+                  valueColor: const Color(0xFF8F463A),
                 ),
               ],
             ),
