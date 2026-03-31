@@ -47,7 +47,7 @@ class DatabaseService {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         _log('Creating tasks table for database version $version');
         await db.execute('''
@@ -57,7 +57,8 @@ class DatabaseService {
             description TEXT NOT NULL,
             dueDate TEXT NOT NULL,
             status TEXT NOT NULL,
-            blockedBy INTEGER NOT NULL DEFAULT 0
+            blockedBy INTEGER NOT NULL DEFAULT 0,
+            completedAt TEXT
           )
         ''');
         _log('Tasks table created successfully.');
@@ -69,6 +70,15 @@ class DatabaseService {
             'ALTER TABLE tasks ADD COLUMN blockedBy INTEGER NOT NULL DEFAULT 0',
           );
           _log('Added blockedBy column to tasks table.');
+        }
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE tasks ADD COLUMN completedAt TEXT');
+          await db.execute("""
+            UPDATE tasks
+            SET completedAt = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            WHERE status = 'completed' AND completedAt IS NULL
+          """);
+          _log('Added completedAt column and backfilled existing completed tasks.');
         }
       },
     );

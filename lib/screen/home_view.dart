@@ -47,11 +47,14 @@ class HomeView extends GetView<TaskController> {
         dueDate: editedTask.dueDate,
         status: editedTask.status,
         blockedBy: editedTask.blockedByTaskId,
+        completedAt: task.completedAt,
       ),
     );
 
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text('Updated "${editedTask.title}"')));
+    messenger.showSnackBar(
+      SnackBar(content: Text('Updated "${editedTask.title}"')),
+    );
   }
 
   Future<void> _handleDeleteTask(BuildContext context, TaskModel task) async {
@@ -65,7 +68,9 @@ class HomeView extends GetView<TaskController> {
 
         await controller.deleteTask(taskId);
         if (!context.mounted) return;
-        messenger.showSnackBar(SnackBar(content: Text('Deleted "${task.title}"')));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Deleted "${task.title}"')),
+        );
       },
     );
   }
@@ -124,128 +129,159 @@ class HomeView extends GetView<TaskController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 16,
-        title: Row(
-          children: [
-            const AppLogo(size: 42),
-            const SizedBox(width: 12),
-            Text(
-              'Task Management',
-              style: GoogleFonts.manrope(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.8,
-                color: const Color(0xFF15161E),
-              ),
-            ),
-          ],
-        ),
-        toolbarHeight: 82,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _formattedCurrentDate,
-              style: GoogleFonts.manrope(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
-                color: const Color(0xFF24389C),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Daily Focus',
-              style: GoogleFonts.manrope(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF15161E),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F2F7),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: TextField(
-                controller: controller.searchController,
-                onChanged: controller.onSearchChanged,
-                decoration: InputDecoration(
-                  icon: const Icon(
-                    Icons.search,
-                    size: 20,
-                    color: Color(0xFF8D93A6),
-                  ),
-                  hintText: 'Search your tasks',
-                  hintStyle: GoogleFonts.manrope(
-                    color: const Color(0xFF8D93A6),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  border: InputBorder.none,
-                  suffixIcon: Obx(
-                    () => controller.searchQuery.value.isEmpty
-                        ? const SizedBox.shrink()
-                        : IconButton(
-                            onPressed: () {
-                              controller.searchController.clear();
-                              controller.onSearchChanged('');
-                            },
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              size: 18,
-                              color: Color(0xFF8D93A6),
-                            ),
-                          ),
-                  ),
-                ),
-                style: GoogleFonts.manrope(
-                  color: const Color(0xFF15161E),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value && controller.tasks.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: Obx(() {
+        final hasNoTasks = controller.tasks.isEmpty;
+        final hasNoMatches = controller.filteredTasks.isEmpty;
 
-                if (controller.tasks.isEmpty) {
-                  return _EmptyState(onCreateTask: _handleAddTask);
-                }
-
-                if (controller.filteredTasks.isEmpty) {
-                  return const Center(
-                    child: Text('No tasks match your search.'),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: controller.loadTasks,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
+        return RefreshIndicator(
+          onRefresh: controller.loadTasks,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            slivers: [
+              SliverAppBar(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.white,
+                elevation: 0,
+                pinned: false,
+                floating: false,
+                snap: false,
+                expandedHeight: 92,
+                toolbarHeight: 82,
+                titleSpacing: 16,
+                title: Row(
+                  children: [
+                    const AppLogo(size: 42),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Task Management',
+                      style: GoogleFonts.manrope(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.8,
+                        color: const Color(0xFF15161E),
+                      ),
                     ),
-                    itemCount: controller.filteredTasks.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 18),
-                    itemBuilder: (context, index) {
-                      final task = controller.filteredTasks[index];
+                  ],
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    Text(
+                      _formattedCurrentDate,
+                      style: GoogleFonts.manrope(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: const Color(0xFF24389C),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Daily Focus',
+                      style: GoogleFonts.manrope(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF15161E),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F2F7),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: TextField(
+                        controller: controller.searchController,
+                        onChanged: controller.onSearchChanged,
+                        decoration: InputDecoration(
+                          icon: const Icon(
+                            Icons.search,
+                            size: 20,
+                            color: Color(0xFF8D93A6),
+                          ),
+                          hintText: 'Search your tasks',
+                          hintStyle: GoogleFonts.manrope(
+                            color: const Color(0xFF8D93A6),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          border: InputBorder.none,
+                          suffixIcon: controller.searchQuery.value.isEmpty
+                              ? const SizedBox.shrink()
+                              : IconButton(
+                                  onPressed: () {
+                                    controller.searchController.clear();
+                                    controller.onSearchChanged('');
+                                  },
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 18,
+                                    color: Color(0xFF8D93A6),
+                                  ),
+                                ),
+                        ),
+                        style: GoogleFonts.manrope(
+                          color: const Color(0xFF15161E),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ]),
+                ),
+              ),
+              if (controller.isLoading.value && hasNoTasks)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (hasNoTasks)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _EmptyState(onCreateTask: _handleAddTask),
+                )
+              else if (hasNoMatches)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'No tasks match your search.',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF6D7280),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      if (index.isOdd) {
+                        return const SizedBox(height: 18);
+                      }
+
+                      final task = controller.filteredTasks[index ~/ 2];
+                      final isActivelyBlocked = controller
+                          .isTaskActivelyBlocked(task);
+                      final blockedByText = task.blockedBy == null
+                          ? null
+                          : controller.blockedByLabel(task.blockedBy);
 
                       return TaskCard(
                         title: task.title,
                         description: task.description,
+                        blockedByText: isActivelyBlocked ? blockedByText : null,
+                        isBlocked: isActivelyBlocked,
                         status: task.status,
                         dueDateLabel: _formatDueDate(task.dueDate),
                         progress: _progressFor(task.status),
@@ -254,19 +290,28 @@ class HomeView extends GetView<TaskController> {
                         onChangeStatus: () =>
                             _handleStatusChange(context, task),
                         onTap: () {
+                          if (isActivelyBlocked) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'This task is blocked by "$blockedByText" and cannot be opened yet.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
                           final taskId = task.id;
                           if (taskId == null) return;
                           Get.to<void>(() => TaskDetailsPage(taskId: taskId));
                         },
                       );
-                    },
+                    }, childCount: controller.filteredTasks.length * 2 - 1),
                   ),
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
+                ),
+            ],
+          ),
+        );
+      }),
       floatingActionButton: Obx(
         () => AnimatedSlide(
           duration: const Duration(milliseconds: 500),
@@ -414,20 +459,6 @@ class _EmptyState extends StatelessWidget {
                 color: const Color(0xFF6F7381),
                 height: 1.4,
               ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () {
-                onCreateTask();
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF3048B8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 14,
-                ),
-              ),
-              child: const Text('Add Task'),
             ),
           ],
         ),

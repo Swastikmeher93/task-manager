@@ -14,20 +14,17 @@ Future<EditTaskResult?> showEditTaskPopup({
   List<TaskModel> blockedByOptions = const [],
 }) async {
   final tag = UniqueKey().toString();
-  final result = await showDialog<EditTaskResult>(
-    context: context,
+  final result = await Get.dialog<EditTaskResult>(
+    EditTaskPopup(
+      controllerTag: tag,
+      initialTitle: initialTitle,
+      initialDescription: initialDescription,
+      initialStatus: initialStatus,
+      initialDueDate: initialDueDate,
+      initialBlockedByTaskId: initialBlockedByTaskId,
+      blockedByOptions: blockedByOptions,
+    ),
     barrierDismissible: true,
-    builder: (dialogContext) {
-      return EditTaskPopup(
-        controllerTag: tag,
-        initialTitle: initialTitle,
-        initialDescription: initialDescription,
-        initialStatus: initialStatus,
-        initialDueDate: initialDueDate,
-        initialBlockedByTaskId: initialBlockedByTaskId,
-        blockedByOptions: blockedByOptions,
-      );
-    },
   );
   if (Get.isRegistered<_EditTaskPopupController>(tag: tag)) {
     Get.delete<_EditTaskPopupController>(tag: tag);
@@ -124,8 +121,8 @@ class EditTaskPopup extends StatelessWidget {
       return;
     }
 
-    Navigator.of(context).pop(
-      EditTaskResult(
+    Get.back<EditTaskResult>(
+      result: EditTaskResult(
         title: title,
         description: description,
         dueDate: dueDate,
@@ -237,7 +234,7 @@ class EditTaskPopup extends StatelessWidget {
                               children: [
                                 IconButton(
                                   visualDensity: VisualDensity.compact,
-                                  onPressed: () => Navigator.of(context).pop(),
+                                  onPressed: () => Get.back<void>(),
                                   icon: const Icon(
                                     Icons.close_rounded,
                                     size: 22,
@@ -405,7 +402,7 @@ class EditTaskPopup extends StatelessWidget {
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () => Get.back<void>(),
                           style: TextButton.styleFrom(
                             minimumSize: const Size.fromHeight(54),
                             shape: RoundedRectangleBorder(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:task_manager/model/task_model.dart';
 
@@ -7,16 +8,13 @@ Future<void> showUpdateStatusBottomSheet({
   required TaskStatus currentStatus,
   ValueChanged<TaskStatus>? onStatusSelected,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
+  return Get.bottomSheet<void>(
+    UpdateStatusBottomSheet(
+      currentStatus: currentStatus,
+      onStatusSelected: onStatusSelected,
+    ),
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (_) {
-      return UpdateStatusBottomSheet(
-        currentStatus: currentStatus,
-        onStatusSelected: onStatusSelected,
-      );
-    },
   );
 }
 
@@ -78,7 +76,7 @@ class UpdateStatusBottomSheet extends StatelessWidget {
             isSelected: currentStatus == TaskStatus.pending,
             onTap: () {
               onStatusSelected?.call(TaskStatus.pending);
-              Navigator.of(context).pop();
+              Get.back<void>();
             },
           ),
           const SizedBox(height: 12),
@@ -89,7 +87,7 @@ class UpdateStatusBottomSheet extends StatelessWidget {
             isSelected: currentStatus == TaskStatus.inProgress,
             onTap: () {
               onStatusSelected?.call(TaskStatus.inProgress);
-              Navigator.of(context).pop();
+              Get.back<void>();
             },
           ),
           const SizedBox(height: 12),
@@ -100,12 +98,12 @@ class UpdateStatusBottomSheet extends StatelessWidget {
             isSelected: currentStatus == TaskStatus.completed,
             onTap: () {
               onStatusSelected?.call(TaskStatus.completed);
-              Navigator.of(context).pop();
+              Get.back<void>();
             },
           ),
           const SizedBox(height: 24),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Get.back<void>(),
             style: TextButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
             ),
