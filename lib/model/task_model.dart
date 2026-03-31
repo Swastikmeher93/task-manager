@@ -10,7 +10,7 @@ class TaskModel {
   String description;
   DateTime dueDate;
   TaskStatus status;
-  bool blockedBy;
+  int? blockedBy;
 
   TaskModel({
     this.id,
@@ -18,7 +18,7 @@ class TaskModel {
     required this.description,
     required this.dueDate,
     required this.status,
-    this.blockedBy = false,
+    this.blockedBy,
   });
 
   factory TaskModel.fromMap(Map<String, dynamic> json) {
@@ -31,7 +31,7 @@ class TaskModel {
         (value) => value.name == json['status'],
         orElse: () => TaskStatus.pending,
       ),
-      blockedBy: (json['blockedBy'] ?? 0) == 1,
+      blockedBy: (json['blockedBy'] ?? 0) == 0 ? null : json['blockedBy'] as int,
     );
   }
 
@@ -41,7 +41,7 @@ class TaskModel {
       'description': description,
       'dueDate': dueDate.toIso8601String(),
       'status': status.name,
-      'blockedBy': blockedBy ? 1 : 0,
+      'blockedBy': blockedBy ?? 0,
     };
 
     if (includeId && id != null) {

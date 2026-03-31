@@ -97,6 +97,27 @@ class DatabaseService {
     return tasks;
   }
 
+  Future<List<TaskModel>> searchTasks(String query) async {
+    final db = await database;
+    final trimmedQuery = query.trim();
+
+    if (trimmedQuery.isEmpty) {
+      _log('Search query is empty. Returning all tasks.');
+      return getTasks();
+    }
+
+    _log('Searching tasks with query "$trimmedQuery"');
+    final maps = await db.query(
+      'tasks',
+      where: 'title LIKE ? OR description LIKE ?',
+      whereArgs: ['%$trimmedQuery%', '%$trimmedQuery%'],
+      orderBy: 'dueDate ASC',
+    );
+    final tasks = maps.map(TaskModel.fromMap).toList();
+    _log('Search completed. Found ${tasks.length} matching task(s).');
+    return tasks;
+  }
+
   Future<int> updateTask(TaskModel task) async {
     if (task.id == null) {
       throw ArgumentError('Task id is required for updates.');
