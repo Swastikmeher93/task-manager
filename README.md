@@ -1,174 +1,202 @@
-# 📝 Task Manager App
+# Task Manager
 
-A modern **Flutter-based task management application** built with **GetX architecture**, local persistence, and powerful productivity features like search, filtering, and task status tracking.
+A Flutter task management app with a polished mobile-first UI, local SQLite persistence, and GetX-based state management, navigation, and dependency injection.
 
----
+## Features
 
-## 🚀 Overview
+- Custom animated splash screen
+- Home screen with:
+  - scrolling sliver app bar
+  - debounced task search
+  - normal, blocked, and completed task states
+- Task creation and editing
+- Task dependencies with `blocked by` relationships
+- SQLite persistence with task CRUD operations
+- Task details screen with custom designed layout
+- Completed tasks remain visible on the home screen for 24 hours
 
-This application helps users manage daily tasks efficiently with:
+## Tech Stack
 
-* Structured task organization
-* Real-time search & filtering
-* Status-based workflow tracking
-* Persistent local storage
+- Flutter
+- Dart
+- GetX
+- sqflite
+- google_fonts
+- intl
 
-The app is designed with **clean architecture principles** and is scalable for production use.
-
----
-
-## ✨ Features
-
-### 🧱 Core Architecture
-
-* ✅ Full **GetX architecture**
-
-  * Bindings
-  * Controllers
-  * Services
-  * Dependency Injection
-
----
-
-### 📝 Task Management
-
-* ✅ Create tasks
-* ✅ Update tasks
-* ✅ Delete tasks
-* ✅ View all tasks
-
----
-
-### 💾 Local Persistence
-
-* ✅ Integrated **sqflite / Hive** database
-* ✅ Offline-first functionality
-* ✅ Fast local data access
-
----
-
-### 🔍 Search & Filtering
-
-* ✅ Search tasks by title/description
-* ✅ Filter by:
-
-  * Status (Done / In Progress / Pending)
-  * Date
-  * Priority (if implemented)
-
----
-
-### 📌 Task Status System
-
-* ✅ Mark tasks as:
-
-  * Done
-  * In Progress
-  * Pending
-* ✅ Dynamic UI updates using GetX reactivity
-
----
-
-### 🎨 UI & UX
-
-* ✅ Clean and modern UI
-* ✅ Custom splash screen
-* ✅ Themed typography (Manrope + Inter)
-* ✅ Responsive layouts
-
----
-
-## 🛠️ Tech Stack
-
-* **Framework:** Flutter
-* **Language:** Dart
-* **State Management:** GetX
-* **Database:** sqflite / Hive
-* **Architecture:** Clean Architecture (Controller → Service → DB)
-* **UI:** Material Design + Custom Styling
-
----
-
-## 📂 Project Structure
+## Project Structure
 
 ```text
 lib/
-  bindings/
-  controllers/
-  services/
-  models/
-  views/
-
   main.dart
+  model/
+    task_model.dart
+  services/
+    database_service.dart
+    home_ui_controller.dart
+    task_controller.dart
+  screen/
+    splash_screen.dart
+    home_view.dart
+    home_details_view.dart
+    task/
+      add_task_view.dart
+      task_details_page.dart
+      widget/
+        task_card.dart
+        edit_task_popup.dart
+        delete_task_popup.dart
+        update_status_bottomsheet.dart
+  widget/
+    app_logo.dart
 ```
 
----
+## State Management With GetX
 
-## 🧠 Architecture Overview
+This app uses GetX in three main ways:
 
-```text
-UI (Views)
-   ↓
-GetX Controller
-   ↓
-Service Layer
-   ↓
-Local Database (sqflite / Hive)
-```
+### 1. Dependency Injection
 
----
+GetX controllers are registered in [main.dart](/Users/swastik/Projects/task_manager/lib/main.dart) using `Get.lazyPut(...)`.
 
-## 🧪 Testing & Quality
+- `TaskController`
+  - owns task data
+  - handles CRUD operations
+  - manages search, filtering, blocked task logic, and form state
+- `HomeUiController`
+  - controls the animated floating action button on the home screen
 
-* Unit tests for controllers
-* Widget tests for UI interactions
-* Ready for CI/CD integration (GitHub Actions)
+Because these controllers are lazily injected, they are created only when first needed.
 
----
+### 2. Reactive State
 
-## ⚙️ Setup & Installation
+The app uses GetX reactive variables like:
+
+- `RxList<TaskModel>` for `tasks` and `filteredTasks`
+- `RxBool` for loading and saving states
+- `RxString` / `RxnString` for search and errors
+- `Rx<TaskStatus>` and `Rxn<DateTime>` for form selections
+
+UI screens listen to these values with `Obx(...)`, so the interface updates automatically without relying on `setState`.
+
+Examples:
+
+- [home_view.dart](/Users/swastik/Projects/task_manager/lib/screen/home_view.dart)
+  listens to task lists, search state, and FAB animation state
+- [task_details_page.dart](/Users/swastik/Projects/task_manager/lib/screen/task/task_details_page.dart)
+  reacts to changes in the selected task record
+- [add_task_view.dart](/Users/swastik/Projects/task_manager/lib/screen/task/add_task_view.dart)
+  reacts to current form values and save state
+
+### 3. Navigation
+
+The app uses GetX navigation instead of `Navigator`.
+
+Examples:
+
+- `Get.to(...)` for opening screens
+- `Get.off(...)` for replacing the splash screen
+- `Get.dialog(...)` for edit/delete dialogs
+- `Get.bottomSheet(...)` for status updates
+- `Get.back(...)` for closing overlays and returning results
+
+This keeps screen flow consistent across the app.
+
+## TaskController Responsibilities
+
+[task_controller.dart](/Users/swastik/Projects/task_manager/lib/services/task_controller.dart) is the main app controller.
+
+It is responsible for:
+
+- loading tasks from SQLite
+- creating, updating, deleting, and searching tasks
+- managing blocked task dependencies
+- determining whether a task is actively blocked
+- maintaining `filteredTasks` for the home screen
+- handling completed task visibility for 24 hours
+- providing form controllers for add/edit flows
+- debouncing search input
+
+## Database Layer
+
+[database_service.dart](/Users/swastik/Projects/task_manager/lib/services/database_service.dart) wraps the local SQLite database.
+
+It handles:
+
+- database initialization
+- schema upgrades
+- task insert, fetch, search, update, and delete operations
+- debug print logs for database activity
+
+The `tasks` table stores:
+
+- `id`
+- `title`
+- `description`
+- `dueDate`
+- `status`
+- `blockedBy`
+- `completedAt`
+
+## Installation
+
+1. Clone the repository
 
 ```bash
 git clone <your-repository-url>
 cd task_manager
+```
+
+2. Install dependencies
+
+```bash
 flutter pub get
+```
+
+3. Run the app
+
+```bash
 flutter run
 ```
 
----
+## Useful Commands
 
-## 🧭 Roadmap (Next Steps)
+Run the app:
 
-* [ ] Notifications & reminders
-* [ ] Cloud sync (Firebase / Supabase)
-* [ ] User authentication
-* [ ] Dark mode
-* [ ] Performance optimizations
-* [ ] App Store / Play Store deployment
+```bash
+flutter run
+```
 
----
+Analyze the project:
 
-## 📌 Highlights
+```bash
+flutter analyze
+```
 
-* Built with **scalable architecture**
-* Uses **reactive state management (GetX)**
-* Supports **offline-first task management**
-* Designed for **real-world production use**
+Format the project:
 
----
+```bash
+dart format .
+```
 
-## 🤝 Contributing
+Build release APK:
 
-Contributions are welcome! Feel free to open issues or submit PRs.
+```bash
+flutter build apk
+```
 
----
+## Notes
 
-## 📄 License
+- The app seeds a few sample tasks automatically when the local database is empty.
+- Search on the home screen is debounced before querying the database.
+- Blocked tasks are styled differently and cannot be opened until their dependency task is completed.
 
-MIT License
+## Assets
 
----
+Local assets are stored in:
 
-## 💡 Author
+```text
+assets/images/
+```
 
-Built with ❤️ using Flutter to explore production-grade mobile app development.
+They are declared in [pubspec.yaml](/Users/swastik/Projects/task_manager/pubspec.yaml).
