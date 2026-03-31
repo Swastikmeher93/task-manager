@@ -204,3 +204,69 @@ assets/images/
 ```
 
 They are declared in [pubspec.yaml](/Users/swastik/Projects/task_manager/pubspec.yaml).
+## 🤖 AI Usage Report
+
+This project was developed with the assistance of AI tools to enhance productivity, improve code quality, and support architectural decisions.
+
+---
+
+### 🧠 AI Tools Used
+
+- **ChatGPT (OpenAI)** – Used for guidance in architecture, debugging, and implementation strategies  
+- **IDE AI Assistants** – Used for code suggestions and minor optimizations  
+
+---
+
+### ⚙️ Scope of AI Assistance
+
+#### 1. Architecture & Design
+- Assisted in structuring the application using **GetX architecture**
+- Helped define clean separation between:
+  - Controllers
+  - Services
+  - Database layer
+
+---
+
+#### 2. Feature Development
+AI was used as a **support tool** while implementing:
+
+- Task CRUD operations (Create, Read, Update, Delete)
+- Search and filtering logic (status, date, priority)
+- Task status management (Done / In Progress / Pending)
+- State management using GetX
+- Local database integration (sqflite / Hive)
+
+---
+
+#### 3. Debugging & Issue Resolution
+- Assisted in identifying and resolving runtime issues
+- Helped fix UI inconsistencies and state-related bugs
+- Provided solutions for platform-specific issues
+
+---
+
+#### 4. Code Improvement
+- Suggested better code structure and organization
+- Helped improve readability and maintainability
+- Assisted in refactoring components for scalability
+
+---
+
+#### 5. Documentation Support
+- Assisted in writing and improving:
+  - README.md
+  - Setup instructions
+  - Project structure documentation
+
+---
+
+
+
+
+### 🚀 Impact
+
+- ⚡ Faster development cycle  
+- 🧹 Cleaner and more structured code  
+- 🧠 Improved understanding of architecture patterns  
+- 🛠 Enhanced debugging efficiency  
