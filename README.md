@@ -191,9 +191,10 @@ flutter build apk
 - Search on the home screen is debounced before querying the database.
 - Blocked tasks are styled differently and cannot be opened until their dependency task is completed.
 <img width="300" height="500" alt="Screenshot_1774959667" src="https://github.com/user-attachments/assets/ca8e8f65-3994-43cf-8f6d-6fa798fe0e2e" />
+<img width="300" height="500" alt="Screenshot_1774959656" src="https://github.com/user-attachments/assets/e101b1cf-364d-48c6-961a-110371ae8e89" />
+
 
 ## Assets
-<img width="300" height="500" alt="Screenshot_1774959656" src="https://github.com/user-attachments/assets/e101b1cf-364d-48c6-961a-110371ae8e89" />
 
 Local assets are stored in:
 
