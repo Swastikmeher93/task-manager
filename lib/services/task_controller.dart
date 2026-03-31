@@ -4,6 +4,8 @@ import 'package:task_manager/model/task_model.dart';
 import 'package:task_manager/services/database_service.dart';
 
 class TaskController extends GetxController {
+  static const Duration _completedTaskVisibilityWindow = Duration(hours: 24);
+
   TaskController({DatabaseService? databaseService})
     : _databaseService = databaseService ?? DatabaseService.instance;
 
@@ -42,7 +44,7 @@ class TaskController extends GetxController {
     await _runDatabaseAction(() async {
       final storedTasks = await _databaseService.getTasks();
       tasks.assignAll(storedTasks);
-      filteredTasks.assignAll(storedTasks);
+      filteredTasks.assignAll(_visibleTasks(storedTasks));
     });
   }
 
@@ -74,6 +76,7 @@ class TaskController extends GetxController {
         dueDate: dueDate,
         status: status,
         blockedBy: blockedBy,
+        completedAt: status == TaskStatus.completed ? DateTime.now() : null,
       );
 
       taskId = await _databaseService.insertTask(task);
@@ -110,7 +113,24 @@ class TaskController extends GetxController {
     int? rowsAffected;
 
     await _runDatabaseAction(() async {
-      rowsAffected = await _databaseService.updateTask(task);
+      final existingTask = task.id == null ? null : getTaskById(task.id!);
+      final normalizedTask = existingTask == null
+          ? task
+          : TaskModel(
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              dueDate: task.dueDate,
+              status: task.status,
+              blockedBy: task.blockedBy,
+              completedAt: _resolvedCompletedAt(
+                previousTask: existingTask,
+                nextStatus: task.status,
+                requestedCompletedAt: task.completedAt,
+              ),
+            );
+
+      rowsAffected = await _databaseService.updateTask(normalizedTask);
       await _refreshTasks();
     });
 
@@ -129,6 +149,11 @@ class TaskController extends GetxController {
         dueDate: task.dueDate,
         status: status,
         blockedBy: task.blockedBy,
+        completedAt: _resolvedCompletedAt(
+          previousTask: task,
+          nextStatus: status,
+          requestedCompletedAt: task.completedAt,
+        ),
       ),
     );
   }
@@ -149,6 +174,7 @@ class TaskController extends GetxController {
             dueDate: task.dueDate,
             status: task.status,
             blockedBy: null,
+            completedAt: task.completedAt,
           ),
         );
       }
@@ -178,6 +204,16 @@ class TaskController extends GetxController {
     if (taskId == null) return fallback;
     final task = getTaskById(taskId);
     return task == null ? 'Task #$taskId' : task.title;
+  }
+
+  bool isTaskActivelyBlocked(TaskModel task) {
+    final blockedByTaskId = task.blockedBy;
+    if (blockedByTaskId == null) return false;
+
+    final dependencyTask = getTaskById(blockedByTaskId);
+    if (dependencyTask == null) return false;
+
+    return dependencyTask.status != TaskStatus.completed;
   }
 
   void fillForm(TaskModel task) {
@@ -218,13 +254,46 @@ class TaskController extends GetxController {
   Future<void> _refreshTasks() async {
     final storedTasks = await _databaseService.getTasks();
     tasks.assignAll(storedTasks);
+    final visibleTasks = _visibleTasks(storedTasks);
     final query = searchController.text.trim();
     if (query.isEmpty) {
-      filteredTasks.assignAll(storedTasks);
+      filteredTasks.assignAll(visibleTasks);
     } else {
       final results = await _databaseService.searchTasks(query);
-      filteredTasks.assignAll(results);
+      filteredTasks.assignAll(_visibleTasks(results));
     }
+  }
+
+  DateTime? _resolvedCompletedAt({
+    required TaskModel previousTask,
+    required TaskStatus nextStatus,
+    DateTime? requestedCompletedAt,
+  }) {
+    if (nextStatus != TaskStatus.completed) {
+      return null;
+    }
+
+    if (previousTask.status == TaskStatus.completed) {
+      return requestedCompletedAt ?? previousTask.completedAt ?? DateTime.now();
+    }
+
+    return DateTime.now();
+  }
+
+  List<TaskModel> _visibleTasks(List<TaskModel> source) {
+    final now = DateTime.now();
+    return source.where((task) {
+      if (task.status != TaskStatus.completed) {
+        return true;
+      }
+
+      final completedAt = task.completedAt;
+      if (completedAt == null) {
+        return true;
+      }
+
+      return now.difference(completedAt) <= _completedTaskVisibilityWindow;
+    }).toList();
   }
 
   Future<void> _runDatabaseAction(Future<void> Function() action) async {

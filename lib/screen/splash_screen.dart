@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:task_manager/screen/home_view.dart';
 import 'package:task_manager/services/database_service.dart';
 
@@ -26,9 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (context) => const HomeView()),
-    );
+    Get.off(() => const HomeView());
   }
 
   @override
@@ -83,7 +82,9 @@ class _SplashScreenState extends State<SplashScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _LogoCluster(size: width * 0.33),
-                          SizedBox(height: isCompact ? height * 0.016 : height * 0.024),
+                          SizedBox(
+                            height: isCompact ? height * 0.016 : height * 0.024,
+                          ),
                           Text(
                             'Task\nManagement',
                             textAlign: TextAlign.center,
@@ -162,20 +163,14 @@ class _GlowCard extends StatelessWidget {
       width: width,
       height: height,
       child: CustomPaint(
-        painter: _EllipseGlowPainter(
-          gradient: gradient,
-          glowColor: glowColor,
-        ),
+        painter: _EllipseGlowPainter(gradient: gradient, glowColor: glowColor),
       ),
     );
   }
 }
 
 class _EllipseGlowPainter extends CustomPainter {
-  const _EllipseGlowPainter({
-    required this.gradient,
-    required this.glowColor,
-  });
+  const _EllipseGlowPainter({required this.gradient, required this.glowColor});
 
   final Gradient gradient;
   final Color glowColor;
@@ -205,7 +200,8 @@ class _EllipseGlowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _EllipseGlowPainter oldDelegate) {
-    return oldDelegate.gradient != gradient || oldDelegate.glowColor != glowColor;
+    return oldDelegate.gradient != gradient ||
+        oldDelegate.glowColor != glowColor;
   }
 }
 
@@ -328,10 +324,7 @@ class _SplashProgressBar extends StatelessWidget {
         builder: (context, value, child) {
           return Align(
             alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: value,
-              child: child,
-            ),
+            child: FractionallySizedBox(widthFactor: value, child: child),
           );
         },
         child: Container(

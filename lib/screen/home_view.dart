@@ -47,6 +47,7 @@ class HomeView extends GetView<TaskController> {
         dueDate: editedTask.dueDate,
         status: editedTask.status,
         blockedBy: editedTask.blockedByTaskId,
+        completedAt: task.completedAt,
       ),
     );
 
@@ -242,10 +243,16 @@ class HomeView extends GetView<TaskController> {
                         const SizedBox(height: 18),
                     itemBuilder: (context, index) {
                       final task = controller.filteredTasks[index];
+                      final isActivelyBlocked = controller.isTaskActivelyBlocked(task);
+                      final blockedByText = task.blockedBy == null
+                          ? null
+                          : controller.blockedByLabel(task.blockedBy);
 
                       return TaskCard(
                         title: task.title,
                         description: task.description,
+                        blockedByText: isActivelyBlocked ? blockedByText : null,
+                        isBlocked: isActivelyBlocked,
                         status: task.status,
                         dueDateLabel: _formatDueDate(task.dueDate),
                         progress: _progressFor(task.status),
@@ -254,6 +261,16 @@ class HomeView extends GetView<TaskController> {
                         onChangeStatus: () =>
                             _handleStatusChange(context, task),
                         onTap: () {
+                          if (isActivelyBlocked) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'This task is blocked by "$blockedByText" and cannot be opened yet.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
                           final taskId = task.id;
                           if (taskId == null) return;
                           Get.to<void>(() => TaskDetailsPage(taskId: taskId));

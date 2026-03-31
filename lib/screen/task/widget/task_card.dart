@@ -7,6 +7,8 @@ class TaskCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.description,
+    required this.blockedByText,
+    this.isBlocked = false,
     required this.status,
     required this.dueDateLabel,
     this.progress = 0.74,
@@ -18,6 +20,8 @@ class TaskCard extends StatelessWidget {
 
   final String title;
   final String description;
+  final String? blockedByText;
+  final bool isBlocked;
   final TaskStatus status;
   final String dueDateLabel;
   final double progress;
@@ -30,6 +34,17 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isBlocked) {
+      return _BlockedTaskCard(
+        title: title,
+        blockedByText: blockedByText,
+        onTap: onTap,
+        onEdit: onEdit,
+        onDelete: onDelete,
+        onChangeStatus: onChangeStatus,
+      );
+    }
+
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(_cardRadius),
@@ -41,18 +56,24 @@ class TaskCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           decoration: BoxDecoration(
-            color: const Color(0xFFF7F5F3),
+            color: isBlocked ? const Color(0xFFF3F4F7) : Colors.white,
             borderRadius: BorderRadius.circular(_cardRadius),
+            border: Border.all(
+              color: isBlocked
+                  ? const Color(0xFFE3E6EC)
+                  : const Color(0xFFE8EAF1),
+              width: 1,
+            ),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x1A000000),
-                blurRadius: 24,
+                color: Color(0x14171A2A),
+                blurRadius: 30,
                 offset: Offset(0, 14),
               ),
               BoxShadow(
-                color: Color(0x12000000),
-                blurRadius: 6,
-                offset: Offset(0, 2),
+                color: Color(0x0A171A2A),
+                blurRadius: 10,
+                offset: Offset(0, 3),
               ),
             ],
           ),
@@ -151,6 +172,67 @@ class TaskCard extends StatelessWidget {
                   letterSpacing: 0.1,
                 ),
               ),
+              if (blockedByText != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F6F9),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFECEEF3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.block_rounded,
+                          size: 16,
+                          color: Color(0xFF848C9C),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Blocked by',
+                              style: GoogleFonts.inter(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.9,
+                                color: const Color(0xFF9AA1AE),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              blockedByText!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.manrope(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF656C7B),
+                                height: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               Row(
                 children: [
@@ -187,6 +269,193 @@ class TaskCard extends StatelessWidget {
 }
 
 enum _TaskCardMenuAction { edit, delete, changeStatus }
+
+class _BlockedTaskCard extends StatelessWidget {
+  const _BlockedTaskCard({
+    required this.title,
+    required this.blockedByText,
+    this.onTap,
+    this.onEdit,
+    this.onDelete,
+    this.onChangeStatus,
+  });
+
+  final String title;
+  final String? blockedByText;
+  final VoidCallback? onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onChangeStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(28),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2F4F7),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFFE4E7EC)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x10171A2A),
+                blurRadius: 18,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8EBF0),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.lock_outline_rounded,
+                      size: 16,
+                      color: Color(0xFF7E8798),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.manrope(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF6B7282),
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3E6EC),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'LOCKED',
+                      style: GoogleFonts.inter(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.9,
+                        color: const Color(0xFF8B92A1),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.link_off_rounded,
+                    size: 16,
+                    color: Color(0xFFDF5A4F),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'BLOCKED BY: ${blockedByText ?? 'UNKNOWN TASK'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.45,
+                        color: const Color(0xFFDF5A4F),
+                      ),
+                    ),
+                  ),
+                  PopupMenuButton<_TaskCardMenuAction>(
+                    tooltip: 'Task actions',
+                    color: Colors.white,
+                    elevation: 10,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    padding: EdgeInsets.zero,
+                    position: PopupMenuPosition.under,
+                    onSelected: (value) {
+                      switch (value) {
+                        case _TaskCardMenuAction.edit:
+                          onEdit?.call();
+                          break;
+                        case _TaskCardMenuAction.delete:
+                          onDelete?.call();
+                          break;
+                        case _TaskCardMenuAction.changeStatus:
+                          onChangeStatus?.call();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem<_TaskCardMenuAction>(
+                        value: _TaskCardMenuAction.edit,
+                        child: _TaskCardMenuItem(
+                          icon: Icons.edit_outlined,
+                          label: 'Edit',
+                        ),
+                      ),
+                      PopupMenuItem<_TaskCardMenuAction>(
+                        value: _TaskCardMenuAction.delete,
+                        child: _TaskCardMenuItem(
+                          icon: Icons.delete_outline_rounded,
+                          label: 'Delete',
+                          isDestructive: true,
+                        ),
+                      ),
+                      PopupMenuItem<_TaskCardMenuAction>(
+                        value: _TaskCardMenuAction.changeStatus,
+                        child: _TaskCardMenuItem(
+                          icon: Icons.sync_alt_rounded,
+                          label: 'Change Status',
+                        ),
+                      ),
+                    ],
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE7EAEE),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.more_vert_rounded,
+                        size: 18,
+                        color: Color(0xFF7E8798),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _TaskCardMenuItem extends StatelessWidget {
   const _TaskCardMenuItem({

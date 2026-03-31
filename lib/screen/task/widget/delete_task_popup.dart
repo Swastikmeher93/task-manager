@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 Future<void> showDeleteTaskPopup({
@@ -6,12 +7,9 @@ Future<void> showDeleteTaskPopup({
   required String taskTitle,
   VoidCallback? onDelete,
 }) {
-  return showDialog<void>(
-    context: context,
+  return Get.dialog<void>(
+    DeleteTaskPopup(taskTitle: taskTitle, onDelete: onDelete),
     barrierDismissible: true,
-    builder: (_) {
-      return DeleteTaskPopup(taskTitle: taskTitle, onDelete: onDelete);
-    },
   );
 }
 
@@ -98,7 +96,7 @@ class DeleteTaskPopup extends StatelessWidget {
                       const SizedBox(width: 8),
                       IconButton(
                         visualDensity: VisualDensity.compact,
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Get.back<void>(),
                         icon: const Icon(
                           Icons.close_rounded,
                           color: Color(0xFF626673),
@@ -183,7 +181,7 @@ class DeleteTaskPopup extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Get.back<void>(),
                       style: TextButton.styleFrom(
                         minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(
@@ -206,7 +204,7 @@ class DeleteTaskPopup extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         onDelete?.call();
-                        Navigator.of(context).pop();
+                        Get.back<void>();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFD65A5A),
