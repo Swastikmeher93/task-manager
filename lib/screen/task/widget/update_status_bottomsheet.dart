@@ -72,7 +72,7 @@ class UpdateStatusBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 26),
           _StatusOptionCard(
-            label: 'Pending',
+            label: 'To-Do',
             subtitle: 'AWAITING START',
             icon: Icons.panorama_fish_eye_rounded,
             isSelected: currentStatus == TaskStatus.pending,
@@ -94,8 +94,8 @@ class UpdateStatusBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _StatusOptionCard(
-            label: 'Completed',
-            subtitle: 'RITUAL COMPLETE',
+            label: 'Done',
+            subtitle: 'TASK COMPLETE',
             icon: Icons.check_circle_outline_rounded,
             isSelected: currentStatus == TaskStatus.completed,
             onTap: () {

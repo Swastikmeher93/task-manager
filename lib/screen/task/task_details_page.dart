@@ -1,24 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:task_manager/model/task_model.dart';
 import 'package:task_manager/screen/task/widget/edit_task_popup.dart';
+import 'package:task_manager/services/database_service.dart';
 
-class TaskDetailsPage extends StatelessWidget {
-  const TaskDetailsPage({
-    super.key,
-    required this.title,
-    required this.status,
-    required this.dueDateLabel,
-    required this.progress,
-  });
+class TaskDetailsPage extends StatefulWidget {
+  const TaskDetailsPage({super.key, required this.task});
 
-  final String title;
-  final TaskStatus status;
-  final String dueDateLabel;
-  final double progress;
+  final TaskModel task;
+
+  @override
+  State<TaskDetailsPage> createState() => _TaskDetailsPageState();
+}
+
+class _TaskDetailsPageState extends State<TaskDetailsPage> {
+  late TaskModel _task;
+
+  @override
+  void initState() {
+    super.initState();
+    _task = widget.task;
+  }
+
+  Future<void> _editTask() async {
+    final editedTask = await showEditTaskPopup(
+      context: context,
+      initialTitle: _task.title,
+      initialDescription: _task.description,
+      initialStatus: _task.status,
+      initialDueDate: _task.dueDate,
+    );
+
+    if (editedTask == null) return;
+
+    final updatedTask = TaskModel(
+      id: _task.id,
+      title: editedTask.title,
+      description: editedTask.description,
+      dueDate: editedTask.dueDate,
+      status: editedTask.status,
+      blockedBy: _task.blockedBy,
+    );
+
+    await DatabaseService.instance.updateTask(updatedTask);
+
+    if (!mounted) return;
+    setState(() {
+      _task = updatedTask;
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Updated "${_task.title}"')));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final progress = _progressFor(_task.status);
+    final dueDateLabel = DateFormat('MMM d, yyyy').format(_task.dueDate);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -38,13 +78,7 @@ class TaskDetailsPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
-              onPressed: () {
-                showEditTaskPopup(
-                  context: context,
-                  initialTitle: title,
-                  initialStatus: status,
-                );
-              },
+              onPressed: _editTask,
               icon: const Icon(Icons.edit_outlined, color: Color(0xFF15161E)),
               tooltip: 'Edit task',
             ),
@@ -59,22 +93,22 @@ class TaskDetailsPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _statusBackground(status),
+                color: _statusBackground(_task.status),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                _statusLabel(status),
+                _statusLabel(_task.status),
                 style: GoogleFonts.manrope(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1,
-                  color: _statusText(status),
+                  color: _statusText(_task.status),
                 ),
               ),
             ),
             const SizedBox(height: 18),
             Text(
-              title,
+              _task.title,
               style: GoogleFonts.manrope(
                 fontSize: 30,
                 fontWeight: FontWeight.w800,
@@ -89,6 +123,25 @@ class TaskDetailsPage extends StatelessWidget {
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF24389C),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Description',
+              style: GoogleFonts.manrope(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF15161E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _task.description,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF5F6472),
+                height: 1.45,
               ),
             ),
             const SizedBox(height: 24),
@@ -127,14 +180,25 @@ class TaskDetailsPage extends StatelessWidget {
     );
   }
 
+  double _progressFor(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.pending:
+        return 0.2;
+      case TaskStatus.inProgress:
+        return 0.6;
+      case TaskStatus.completed:
+        return 1;
+    }
+  }
+
   String _statusLabel(TaskStatus status) {
     switch (status) {
       case TaskStatus.pending:
-        return 'PENDING';
+        return 'TO-DO';
       case TaskStatus.inProgress:
         return 'IN PROGRESS';
       case TaskStatus.completed:
-        return 'COMPLETED';
+        return 'DONE';
     }
   }
 

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:task_manager/model/task_model.dart';
 
 class TaskCard extends StatelessWidget {
   const TaskCard({
     super.key,
     required this.title,
+    required this.description,
     required this.status,
     required this.dueDateLabel,
     this.progress = 0.74,
@@ -15,6 +17,7 @@ class TaskCard extends StatelessWidget {
   });
 
   final String title;
+  final String description;
   final TaskStatus status;
   final String dueDateLabel;
   final double progress;
@@ -122,19 +125,33 @@ class TaskCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 title,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF232429),
-                  height: 1.2,
+                style: GoogleFonts.manrope(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1F2128),
+                  height: 1.15,
+                  letterSpacing: -0.4,
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 10),
+              Text(
+                description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6D7280),
+                  height: 1.45,
+                  letterSpacing: 0.1,
+                ),
+              ),
+              const SizedBox(height: 18),
               Row(
                 children: [
                   Expanded(
@@ -233,11 +250,11 @@ class _StatusChip extends StatelessWidget {
   String _label(TaskStatus status) {
     switch (status) {
       case TaskStatus.pending:
-        return 'PENDING';
+        return 'TO-DO';
       case TaskStatus.inProgress:
         return 'IN PROGRESS';
       case TaskStatus.completed:
-        return 'COMPLETED';
+        return 'DONE';
     }
   }
 

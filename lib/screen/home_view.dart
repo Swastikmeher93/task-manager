@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +10,7 @@ import 'package:task_manager/screen/task/widget/delete_task_popup.dart';
 import 'package:task_manager/screen/task/widget/edit_task_popup.dart';
 import 'package:task_manager/screen/task/widget/task_card.dart';
 import 'package:task_manager/screen/task/widget/update_status_bottomsheet.dart';
+import 'package:task_manager/services/database_service.dart';
 import 'package:task_manager/widget/app_logo.dart';
 
 class HomeView extends StatefulWidget {
@@ -18,53 +21,187 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
+  static const _fabReplayGap = Duration(seconds: 10);
+  static const _fabCollapseDelay = Duration(milliseconds: 1400);
+  static const _fabLabelRevealDelay = Duration(milliseconds: 220);
+
   bool _showFab = false;
   bool _collapseFab = false;
-  final List<
-    ({String title, TaskStatus status, String dueDate, double progress})
-  >
-  _sampleTasks = [
-    (
-      title: 'Finalise Project',
-      status: TaskStatus.inProgress,
-      dueDate: 'Oct 12',
-      progress: 0.74,
-    ),
-    (
-      title: 'Plan Weekly Sprint',
-      status: TaskStatus.pending,
-      dueDate: 'Oct 14',
-      progress: 0.28,
-    ),
-    (
-      title: 'Review Team Updates',
-      status: TaskStatus.completed,
-      dueDate: 'Oct 10',
-      progress: 1,
-    ),
-  ];
+  bool _showFabLabel = false;
+  bool _isLoading = true;
+  List<TaskModel> _tasks = const [];
+  Timer? _fabReplayTimer;
 
   @override
   void initState() {
     super.initState();
+    _loadTasks();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {
-        _showFab = true;
-      });
-
-      Future<void>.delayed(const Duration(milliseconds: 1400), () {
-        if (!mounted) return;
-        setState(() {
-          _collapseFab = true;
-        });
+      _playFabAnimation();
+      _fabReplayTimer = Timer.periodic(_fabReplayGap, (_) {
+        _playFabAnimation();
       });
     });
+  }
+
+  void _playFabAnimation() {
+    if (!mounted) return;
+
+    setState(() {
+      _showFab = true;
+      _collapseFab = false;
+      _showFabLabel = false;
+    });
+
+    Future<void>.delayed(_fabLabelRevealDelay, () {
+      if (!mounted || _collapseFab) return;
+      setState(() {
+        _showFabLabel = true;
+      });
+    });
+
+    Future<void>.delayed(_fabCollapseDelay, () {
+      if (!mounted) return;
+      setState(() {
+        _showFabLabel = false;
+        _collapseFab = true;
+      });
+    });
+  }
+
+  Future<void> _loadTasks() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final tasks = await DatabaseService.instance.getTasks();
+
+    if (!mounted) return;
+    setState(() {
+      _tasks = tasks;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _handleAddTask() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const AddTaskView()));
+
+    await _loadTasks();
+  }
+
+  Future<void> _handleEditTask(TaskModel task) async {
+    final editedTask = await showEditTaskPopup(
+      context: context,
+      initialTitle: task.title,
+      initialDescription: task.description,
+      initialStatus: task.status,
+      initialDueDate: task.dueDate,
+    );
+
+    if (editedTask == null) return;
+
+    await DatabaseService.instance.updateTask(
+      TaskModel(
+        id: task.id,
+        title: editedTask.title,
+        description: editedTask.description,
+        dueDate: editedTask.dueDate,
+        status: editedTask.status,
+        blockedBy: task.blockedBy,
+      ),
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Updated "${editedTask.title}"')),
+    );
+    await _loadTasks();
+  }
+
+  Future<void> _handleDeleteTask(TaskModel task) async {
+    await showDeleteTaskPopup(
+      context: context,
+      taskTitle: task.title,
+      onDelete: () async {
+        final taskId = task.id;
+        if (taskId == null) return;
+
+        await DatabaseService.instance.deleteTask(taskId);
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Deleted "${task.title}"')));
+        await _loadTasks();
+      },
+    );
+  }
+
+  Future<void> _handleStatusChange(TaskModel task) async {
+    await showUpdateStatusBottomSheet(
+      context: context,
+      currentStatus: task.status,
+      onStatusSelected: (status) async {
+        await DatabaseService.instance.updateTask(
+          TaskModel(
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            dueDate: task.dueDate,
+            status: status,
+            blockedBy: task.blockedBy,
+          ),
+        );
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Status for "${task.title}" changed to ${_statusLabel(status)}',
+            ),
+          ),
+        );
+        await _loadTasks();
+      },
+    );
   }
 
   String get _formattedCurrentDate {
     final now = DateTime.now();
     return DateFormat('EEEE, MMM d').format(now).toUpperCase();
+  }
+
+  String _formatDueDate(DateTime dueDate) {
+    return DateFormat('MMM d').format(dueDate);
+  }
+
+  double _progressFor(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.pending:
+        return 0.2;
+      case TaskStatus.inProgress:
+        return 0.6;
+      case TaskStatus.completed:
+        return 1;
+    }
+  }
+
+  String _statusLabel(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.pending:
+        return 'to-do';
+      case TaskStatus.inProgress:
+        return 'in progress';
+      case TaskStatus.completed:
+        return 'done';
+    }
+  }
+
+  @override
+  void dispose() {
+    _fabReplayTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -140,67 +277,45 @@ class _HomeViewState extends State<HomeView> {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: ListView.separated(
-                physics: const BouncingScrollPhysics(),
-                itemCount: _sampleTasks.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 18),
-                itemBuilder: (context, index) {
-                  final task = _sampleTasks[index];
-
-                  return TaskCard(
-                    title: task.title,
-                    status: task.status,
-                    dueDateLabel: task.dueDate,
-                    progress: task.progress,
-                    onEdit: () {
-                      showEditTaskPopup(
-                        context: context,
-                        initialTitle: task.title,
-                        initialStatus: task.status,
-                      );
-                    },
-                    onDelete: () {
-                      showDeleteTaskPopup(
-                        context: context,
-                        taskTitle: task.title,
-                        onDelete: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Deleted "${task.title}"'),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    onChangeStatus: () {
-                      showUpdateStatusBottomSheet(
-                        context: context,
-                        currentStatus: task.status,
-                        onStatusSelected: (status) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Status for "${task.title}" changed to ${status.name}',
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => TaskDetailsPage(
-                            title: task.title,
-                            status: task.status,
-                            dueDateLabel: task.dueDate,
-                            progress: task.progress,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _tasks.isEmpty
+                    ? _EmptyState(onCreateTask: _handleAddTask)
+                    : RefreshIndicator(
+                        onRefresh: _loadTasks,
+                        child: ListView.separated(
+                          physics: const BouncingScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics(),
                           ),
+                          itemCount: _tasks.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 18),
+                          itemBuilder: (context, index) {
+                            final task = _tasks[index];
+
+                            return TaskCard(
+                              title: task.title,
+                              description: task.description,
+                              status: task.status,
+                              dueDateLabel: _formatDueDate(task.dueDate),
+                              progress: _progressFor(task.status),
+                              onEdit: () => _handleEditTask(task),
+                              onDelete: () => _handleDeleteTask(task),
+                              onChangeStatus: () => _handleStatusChange(task),
+                              onTap: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => TaskDetailsPage(task: task),
+                                  ),
+                                );
+                                await _loadTasks();
+                              },
+                            );
+                          },
                         ),
-                      );
-                    },
-                  );
-                },
+                      ),
               ),
             ),
           ],
@@ -233,18 +348,12 @@ class _HomeViewState extends State<HomeView> {
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
                 child: InkWell(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const AddTaskView(),
-                      ),
-                    );
-                  },
+                  onTap: _handleAddTask,
                   borderRadius: BorderRadius.circular(999),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 500),
                     curve: Curves.easeInOutCubic,
-                    width: _collapseFab ? 74 : 156,
+                    width: _collapseFab ? 74 : 172,
                     height: 74,
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -255,25 +364,18 @@ class _HomeViewState extends State<HomeView> {
                         colors: [Color(0xFF5169EE), Color(0xFF3048B8)],
                       ),
                     ),
-                    child: Stack(
-                      alignment: Alignment.center,
+                    child: Row(
                       children: [
-                        AnimatedOpacity(
-                          duration: const Duration(milliseconds: 250),
-                          opacity: _collapseFab ? 0 : 1,
-                          child: AnimatedPadding(
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeInOutCubic,
-                            padding: EdgeInsets.only(
-                              left: _collapseFab ? 0 : 18,
-                              right: _collapseFab ? 0 : 56,
-                            ),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
+                        Expanded(
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 250),
+                            opacity: _showFabLabel ? 1 : 0,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 18, right: 8),
                               child: Text(
                                 'Add Task',
                                 maxLines: 1,
-                                overflow: TextOverflow.fade,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.manrope(
                                   color: Colors.white,
                                   fontSize: 15,
@@ -284,22 +386,19 @@ class _HomeViewState extends State<HomeView> {
                             ),
                           ),
                         ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeInOutCubic,
-                            width: 62,
-                            height: 62,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF4059D6),
-                            ),
-                            child: const Icon(
-                              Icons.add_rounded,
-                              color: Colors.white,
-                              size: 30,
-                            ),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeInOutCubic,
+                          width: 62,
+                          height: 62,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF4059D6),
+                          ),
+                          child: const Icon(
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 30,
                           ),
                         ),
                       ],
@@ -309,6 +408,73 @@ class _HomeViewState extends State<HomeView> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onCreateTask});
+
+  final Future<void> Function() onCreateTask;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE9EDFF),
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: const Icon(
+                Icons.checklist_rounded,
+                size: 40,
+                color: Color(0xFF3048B8),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No tasks yet',
+              style: GoogleFonts.manrope(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF15161E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Create your first task and it will appear here from the local database.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6F7381),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () {
+                onCreateTask();
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF3048B8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 14,
+                ),
+              ),
+              child: const Text('Add Task'),
+            ),
+          ],
         ),
       ),
     );
