@@ -23,13 +23,8 @@ Current stack used in the codebase:
 - Dart
 - Material Design
 - `google_fonts`
-
-Planned / intended stack:
-
 - GetX for state management, navigation, and dependency injection
 
-Note:
-GetX is not yet integrated into the current source code. If you want, it can be added in the next step.
 
 ## Project Structure
 
